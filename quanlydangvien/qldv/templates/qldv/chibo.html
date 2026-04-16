@@ -1,0 +1,407 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Theo dõi Tổng quan Chi bộ{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1.1rem;
+	}
+
+	.page-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head p {
+		margin: 0.35rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.head-actions {
+		display: inline-flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+
+	.head-actions .btn-primary {
+		border: 1px solid #dc2626;
+		background: #dc2626;
+		color: #fff;
+		font-weight: 600;
+	}
+
+	.stats {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.85rem;
+	}
+
+	.stat {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+		background: color-mix(in oklab, var(--card) 95%, white 5%);
+	}
+
+	.stat span {
+		color: #64748b;
+		font-weight: 600;
+	}
+
+	.stat b {
+		font-size: 1.75rem;
+		display: block;
+		margin-top: 0.25rem;
+		line-height: 1.1;
+	}
+
+	.stat small {
+		display: block;
+		margin-top: 0.2rem;
+		font-size: 0.86rem;
+		color: #64748b;
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+		background: color-mix(in oklab, var(--card) 95%, white 5%);
+	}
+
+	.section-title {
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		font-size: 0.92rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		color: #475569;
+		text-transform: uppercase;
+	}
+
+	.section-title::after {
+		content: "";
+		flex: 1;
+		height: 1px;
+		background: color-mix(in oklab, var(--border) 85%, transparent);
+	}
+
+	.dashboard-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.9rem;
+	}
+
+	.card-title {
+		margin: 0;
+		font-size: 1.05rem;
+		line-height: 1.25;
+	}
+
+	.card-sub {
+		margin: 0.2rem 0 0;
+		color: #64748b;
+		font-weight: 500;
+		font-size: 0.92rem;
+	}
+
+	.legend-wrap {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.8rem 1.1rem;
+		margin-top: 0.9rem;
+	}
+
+	.legend-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.94rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	.legend-dot {
+		width: 13px;
+		height: 13px;
+		border-radius: 4px;
+		display: inline-block;
+	}
+
+	.donut-wrap {
+		display: flex;
+		justify-content: center;
+		padding-top: 0.8rem;
+	}
+
+	.donut {
+		width: 220px;
+		height: 220px;
+		border-radius: 50%;
+		position: relative;
+		background: conic-gradient(#cbd5e1 0 100%);
+	}
+
+	.donut::after {
+		content: "";
+		position: absolute;
+		inset: 34%;
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border) 75%, transparent);
+	}
+
+	.category-list {
+		display: grid;
+		gap: 0.7rem;
+		margin-top: 0.9rem;
+	}
+
+	.category-item {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		gap: 0.7rem;
+		align-items: start;
+		padding: 0.72rem;
+		border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+		border-radius: calc(var(--radius) - 2px);
+		background: color-mix(in oklab, #fce7f3 22%, white 78%);
+	}
+
+	.category-icon {
+		font-size: 1.22rem;
+		line-height: 1;
+		margin-top: 0.1rem;
+	}
+
+	.category-main b {
+		display: block;
+		font-size: 0.98rem;
+	}
+
+	.category-main p {
+		margin: 0.1rem 0 0;
+		font-size: 0.88rem;
+		color: #475569;
+	}
+
+	.category-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.32rem;
+		font-weight: 700;
+		padding: 0.24rem 0.5rem;
+		border-radius: 999px;
+		font-size: 0.95rem;
+	}
+
+	.area-detail {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+		background: color-mix(in oklab, var(--card) 96%, white 4%);
+	}
+
+	.area-detail-list {
+		display: grid;
+		gap: 0.72rem;
+		margin-top: 0.85rem;
+	}
+
+	.area-row {
+		display: grid;
+		grid-template-columns: 140px minmax(0, 1fr) auto auto;
+		gap: 0.65rem;
+		align-items: center;
+	}
+
+	.area-track {
+		height: 0.9rem;
+		border-radius: 999px;
+		background: color-mix(in oklab, var(--muted) 75%, white 25%);
+		overflow: hidden;
+	}
+
+	.area-fill {
+		height: 100%;
+		border-radius: 999px;
+	}
+
+	.area-count {
+		font-size: 0.88rem;
+		font-weight: 600;
+		color: #1e293b;
+	}
+
+	.area-badge {
+		padding: 0.16rem 0.5rem;
+		border-radius: 999px;
+		font-size: 0.83rem;
+		font-weight: 700;
+	}
+
+	.area-badge.badge-warn {
+		background: #fee2e2;
+		color: #dc2626;
+	}
+
+	.area-badge.badge-ok {
+		background: #fce7f3;
+		color: #9f1239;
+	}
+
+	@media (max-width: 980px) {
+		.stats {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.dashboard-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.area-row {
+			grid-template-columns: 1fr;
+			gap: 0.3rem;
+		}
+
+		.area-track {
+			height: 0.75rem;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.stats {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section class="page-head">
+		<div>
+			<h1>Theo dõi Tổng quan Chi bộ</h1>
+			<p>Theo dõi nhanh số lượng, trạng thái và phân bổ Chi bộ theo địa bàn.</p>
+		</div>
+		<div class="head-actions">
+			<a href="{% url 'chibo_add' %}" class="btn btn-primary">Thêm Chi bộ</a>
+		</div>
+	</section>
+
+	<section class="stats">
+		<div class="stat">
+			<span>Tổng Chi bộ</span>
+			<b>{{ total_chibo }}</b>
+			<small>Trên 3 địa bàn</small>
+		</div>
+		<div class="stat">
+			<span>Chi bộ hoạt động</span>
+			<b>{{ active_chibo }}</b>
+			<small>Tỷ lệ {{ active_percent }}%</small>
+		</div>
+		<div class="stat">
+			<span>Ngừng hoạt động</span>
+			<b>{{ inactive_chibo }}</b>
+			<small>Chiếm {{ inactive_percent }}%</small>
+		</div>
+		<div class="stat">
+			<span>Chi bộ khu dân cư</span>
+			<b>{{ residential_count }}</b>
+			<small>{{ residential_percent }}% tổng số</small>
+		</div>
+	</section>
+
+	<div class="section-title">Phân bổ &amp; Cơ cấu</div>
+
+	<section class="dashboard-grid">
+		<article class="card">
+			<h2 class="card-title">Phân bổ theo địa bàn</h2>
+			<p class="card-sub">Số Chi bộ tại mỗi khu vực</p>
+			<div class="legend-wrap">
+				{% for item in by_dia_ban %}
+				<div class="legend-item">
+					<span class="legend-dot" data-dot-color="{{ item.color }}"></span>
+					{{ item.name }} - {{ item.count }}
+				</div>
+				{% endfor %}
+			</div>
+			<div class="donut-wrap">
+				<div class="donut" data-donut-style="{{ dia_ban_donut_style }}"></div>
+			</div>
+		</article>
+
+		<article class="card">
+			<h2 class="card-title">Phân loại Chi bộ</h2>
+			<p class="card-sub">Theo tính chất hoạt động</p>
+			<div class="category-list">
+				{% for item in category_blocks %}
+				<div class="category-item">
+					<div class="category-icon">{{ item.icon }}</div>
+					<div class="category-main">
+						<b>{{ item.label }}</b>
+						<p>{{ item.description }}</p>
+					</div>
+					<div class="category-badge" data-badge-color="{{ item.color }}">{{ item.count }} - {{ item.percent }}%</div>
+				</div>
+				{% endfor %}
+			</div>
+		</article>
+	</section>
+
+	<section class="area-detail">
+		<h2 class="card-title">Chi tiết theo địa bàn</h2>
+		<p class="card-sub">Phân bổ hoạt động / ngừng hoạt động</p>
+		<div class="area-detail-list">
+			{% for item in by_dia_ban %}
+			<div class="area-row">
+				<div>{{ item.name }}</div>
+				<div class="area-track">
+					<div class="area-fill" data-area-color="{{ item.color }}" data-area-width="{{ item.bar_ratio }}"></div>
+				</div>
+				<div class="area-count">{{ item.count }}</div>
+				{% if item.inactive_count > 0 %}
+				<div class="area-badge badge-warn">{{ item.inactive_count }} ngừng</div>
+				{% else %}
+				<div class="area-badge badge-ok">Tất cả HĐ</div>
+				{% endif %}
+			</div>
+			{% endfor %}
+		</div>
+	</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	(function () {
+		document.querySelectorAll("[data-dot-color]").forEach(function (dot) {
+			dot.style.background = dot.getAttribute("data-dot-color") || "#64748b";
+		});
+
+		var donut = document.querySelector("[data-donut-style]");
+		if (donut) {
+			donut.style.background = donut.getAttribute("data-donut-style") || "conic-gradient(#cbd5e1 0 100%)";
+		}
+
+		document.querySelectorAll("[data-badge-color]").forEach(function (badge) {
+			var color = badge.getAttribute("data-badge-color") || "#64748b";
+			badge.style.color = color;
+			badge.style.background = "color-mix(in oklab, " + color + " 20%, white 80%)";
+		});
+
+		document.querySelectorAll("[data-area-width]").forEach(function (bar) {
+			var value = Number(bar.getAttribute("data-area-width") || "0");
+			var color = bar.getAttribute("data-area-color") || "#64748b";
+			bar.style.width = Math.max(0, Math.min(100, value)) + "%";
+			bar.style.background = "linear-gradient(90deg, " + color + ", " + color + ")";
+		});
+	})();
+</script>
+{% endblock %}

@@ -1,0 +1,190 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Thêm Chi bộ{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.page-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head p {
+		margin: 0.35rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.head-actions {
+		display: inline-flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+		background: color-mix(in oklab, var(--card) 96%, white 4%);
+	}
+
+	.entry-mode-switch {
+		display: inline-flex;
+		gap: 0.55rem;
+		padding: 0.3rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: color-mix(in oklab, var(--muted) 65%, white 35%);
+		margin: 0.25rem 0 0.75rem;
+	}
+
+	.mode-btn {
+		appearance: none;
+		border: none;
+		background: transparent;
+		color: var(--muted-foreground);
+		padding: 0.45rem 0.9rem;
+		border-radius: 999px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.mode-btn.active {
+		background: #ffffff;
+		color: #7f0012;
+		box-shadow: 0 6px 14px rgba(15, 23, 42, 0.09);
+	}
+
+	.mode-panel {
+		display: none;
+	}
+
+	.mode-panel.active {
+		display: block;
+	}
+
+	.form-grid {
+		display: grid;
+		gap: 0.7rem;
+	}
+
+	.form-field {
+		display: grid;
+		gap: 0.3rem;
+	}
+
+	.btn-primary {
+		border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
+		background: color-mix(in oklab, var(--destructive) 75%, #9f1239 25%);
+		color: #fff;
+		padding: 0.6rem 0.95rem;
+		border-radius: calc(var(--radius) - 2px);
+	}
+
+	.alert {
+		padding: 0.7rem;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 2px);
+		background: color-mix(in oklab, var(--muted) 65%, white 35%);
+		white-space: pre-line;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section class="page-head">
+		<div>
+			<h1>Thêm Chi bộ</h1>
+			<p>Nhập mới từng Chi bộ hoặc import từ file CSV/Excel.</p>
+		</div>
+	</section>
+
+	{% if messages %}
+	<section>
+		{% for message in messages %}
+		<div class="alert">{{ message }}</div>
+		{% endfor %}
+	</section>
+	{% endif %}
+
+	<section class="card" data-initial-mode="{% if import_form.import_file.errors %}import{% elif single_form.errors %}manual{% else %}manual{% endif %}">
+		<div class="entry-mode-switch" role="tablist" aria-label="Chọn phương thức thêm Chi bộ">
+			<button type="button" class="mode-btn active" data-mode="manual" role="tab" aria-selected="true">Nhập thủ công</button>
+			<button type="button" class="mode-btn" data-mode="import" role="tab" aria-selected="false">Nhập file</button>
+		</div>
+
+		<div class="mode-panel active" data-mode-panel="manual">
+			<h2>Nhập Chi bộ</h2>
+			<form method="post" class="form-grid">
+				{% csrf_token %}
+				<input type="hidden" name="form_type" value="single">
+				{% for field in single_form %}
+				<div class="form-field">
+					<label for="{{ field.id_for_label }}">{{ field.label }}</label>
+					{{ field }}
+					{% if field.errors %}
+					<div class="help">{{ field.errors|striptags }}</div>
+					{% endif %}
+				</div>
+				{% endfor %}
+				<button type="submit" class="btn-primary">Lưu Chi bộ</button>
+			</form>
+		</div>
+
+		<div class="mode-panel" data-mode-panel="import">
+			<h2>Nhập file CSV/Excel</h2>
+			<form method="post" enctype="multipart/form-data" class="form-grid">
+				{% csrf_token %}
+				<input type="hidden" name="form_type" value="import">
+				<div class="form-field">
+					<label for="{{ import_form.import_file.id_for_label }}">{{ import_form.import_file.label }}</label>
+					{{ import_form.import_file }}
+				</div>
+				<button type="submit" class="btn-primary">Nhập file</button>
+			</form>
+		</div>
+	</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	(function () {
+		var root = document.querySelector("[data-initial-mode]");
+		if (!root) {
+			return;
+		}
+
+		var modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
+		var modePanels = Array.from(document.querySelectorAll(".mode-panel"));
+
+		var setEntryMode = function (mode) {
+			modeButtons.forEach(function (btn) {
+				var isActive = btn.dataset.mode === mode;
+				btn.classList.toggle("active", isActive);
+				btn.setAttribute("aria-selected", isActive ? "true" : "false");
+			});
+
+			modePanels.forEach(function (panel) {
+				panel.classList.toggle("active", panel.dataset.modePanel === mode);
+			});
+		};
+
+		modeButtons.forEach(function (btn) {
+			btn.addEventListener("click", function () {
+				setEntryMode(btn.dataset.mode);
+			});
+		});
+
+		setEntryMode(root.dataset.initialMode || "manual");
+	})();
+</script>
+{% endblock %}

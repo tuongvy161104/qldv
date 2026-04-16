@@ -1,0 +1,631 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Quản lý Huy hiệu Đảng{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.9rem;
+		background: color-mix(in oklab, var(--card) 95%, white 5%);
+	}
+
+	.alert {
+		padding: 0.78rem 0.85rem;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 2px);
+		background: linear-gradient(120deg, color-mix(in oklab, var(--muted) 66%, white 34%), #ffffff);
+		white-space: pre-line;
+	}
+
+	.filter-form {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.7rem;
+		align-items: end;
+	}
+
+	.form-field {
+		display: grid;
+		gap: 0.3rem;
+	}
+
+	.form-field.has-error label {
+		color: #b91c1c;
+		font-weight: 600;
+	}
+
+	.form-field.has-error input,
+	.form-field.has-error select,
+	.form-field.has-error textarea {
+		border-color: #dc2626;
+		background: #fef2f2;
+		box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.18);
+	}
+
+	.form-field--year {
+		max-width: 180px;
+	}
+
+	#id_year {
+		height: 38px;
+		padding: 0.35rem 0.55rem;
+		font-size: 0.95rem;
+	}
+
+	#id_year::-webkit-outer-spin-button,
+	#id_year::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
+	.btn-filter {
+		border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
+		background: color-mix(in oklab, var(--destructive) 75%, #9f1239 25%);
+		color: #fff;
+		padding: 0.55rem 0.9rem;
+		border-radius: calc(var(--radius) - 2px);
+		cursor: pointer;
+	}
+
+	.stat {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.9rem;
+		background: color-mix(in oklab, var(--card) 95%, white 5%);
+		max-width: 280px;
+	}
+
+	.stat b {
+		display: block;
+		font-size: 1.4rem;
+	}
+
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 980px;
+	}
+
+	th,
+	td {
+		padding: 0.7rem;
+		text-align: left;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.btn-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 3px);
+		padding: 0.32rem 0.55rem;
+		background: #ffffff;
+		color: var(--foreground);
+		cursor: pointer;
+		font-size: 0.88rem;
+		font-weight: 500;
+		text-decoration: none;
+		transition: transform 0.16s ease, background-color 0.16s ease;
+	}
+
+	.btn-action:hover {
+		background: var(--muted);
+		transform: translateY(-1px);
+	}
+
+	.btn-action.btn-danger {
+		color: #9f1239;
+		border-color: color-mix(in oklab, #9f1239 40%, var(--border));
+	}
+
+	.actions-cell {
+		display: flex;
+		gap: 0.45rem;
+		align-items: center;
+	}
+
+	thead {
+		background: color-mix(in oklab, var(--muted) 70%, white 30%);
+	}
+
+	.inline-create-form {
+		display: grid;
+		gap: 0.35rem;
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.inline-create-form .reveal-line {
+		grid-column: 1 / -1;
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.9rem;
+	}
+
+	.inline-create-form .award-inputs {
+		grid-column: 1 / -1;
+		display: none;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.35rem;
+	}
+
+	.inline-create-form .award-inputs.show {
+		display: grid;
+	}
+
+	.inline-create-form input[type="text"],
+	.inline-create-form input[type="date"] {
+		height: 32px;
+		padding: 0.2rem 0.45rem;
+	}
+
+	.inline-create-form .checkbox-line {
+		grid-column: 1 / -1;
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.9rem;
+	}
+
+	.inline-create-form button {
+		grid-column: 1 / -1;
+		height: 32px;
+	}
+
+	.btn-add {
+		background: linear-gradient(135deg, #c4001a 0%, #9f0016 100%);
+		color: #fff;
+		border: none;
+		padding: 0.58rem 1.05rem;
+		border-radius: calc(var(--radius) - 2px);
+		cursor: pointer;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+		box-shadow: 0 10px 18px rgba(159, 0, 22, 0.24);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	.btn-add:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 14px 26px rgba(159, 0, 22, 0.3);
+	}
+
+	.entry-mode-switch {
+		display: inline-flex;
+		gap: 0.55rem;
+		padding: 0.3rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: color-mix(in oklab, var(--muted) 65%, white 35%);
+		margin: 0.25rem 0 0.75rem;
+	}
+
+	.mode-btn {
+		appearance: none;
+		border: none;
+		background: transparent;
+		color: var(--muted-foreground);
+		padding: 0.45rem 0.9rem;
+		border-radius: 999px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background-color 0.2s ease, color 0.2s ease;
+	}
+
+	.mode-btn.active {
+		background: #fff;
+		color: #7f0012;
+		box-shadow: 0 6px 14px rgba(15, 23, 42, 0.09);
+	}
+
+	.mode-panel {
+		display: none;
+	}
+
+	.mode-panel.active {
+		display: block;
+	}
+
+	.input-section {
+		max-height: 0;
+		opacity: 0;
+		overflow: hidden;
+		transition: max-height 0.3s ease, opacity 0.3s ease;
+		margin-top: 0.2rem;
+	}
+
+	.input-section.show {
+		max-height: 5000px;
+		opacity: 1;
+	}
+
+	@media (max-width: 1000px) {
+		.filter-form {
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.filter-form {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section>
+		<h1>Quản lý Huy hiệu Đảng</h1>
+		<p>Danh sách hiển thị dữ liệu từ cơ sở dữ liệu.</p>
+	</section>
+
+	<section class="card">
+		<form method="get" class="filter-form">
+			<div class="form-field form-field--year">
+				<label for="id_year">Năm xét</label>
+				<input
+					id="id_year"
+					name="year"
+					type="number"
+					inputmode="numeric"
+					pattern="[0-9]*"
+					step="1"
+					min="1930"
+					max="{{ year_options.0 }}"
+					list="year-options"
+					value="{{ selected_year }}"
+					required
+				>
+				<datalist id="year-options">
+					{% for year in year_options %}
+					<option value="{{ year }}"></option>
+					{% endfor %}
+				</datalist>
+			</div>
+			<div class="form-field">
+				<label for="id_ceremony">Đợt xét</label>
+				<select id="id_ceremony" name="ceremony">
+					<option value="all" {% if selected_ceremony_key == "all" %}selected{% endif %}>Tất cả các đợt</option>
+					{% for item in ceremony_dates %}
+					<option value="{{ item.key }}" {% if selected_ceremony_key == item.key %}selected{% endif %}>{{ item.name }} ({{ item.short_name }})</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="form-field">
+				<label for="id_badge_year">Mốc Huy hiệu</label>
+				<select id="id_badge_year" name="badge_year">
+					<option value="">Tất cả mốc</option>
+					{% for milestone in badge_milestones %}
+					<option value="{{ milestone }}" {% if selected_badge_year == milestone %}selected{% endif %}>{{ milestone }} năm</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="form-field">
+				<button type="submit" class="btn-filter">Lọc dữ liệu</button>
+			</div>
+		</form>
+	</section>
+
+	<section class="stat">
+		<span>Tổng hồ sơ huy hiệu</span>
+		<b>{{ total_huyhieu }}</b>
+	</section>
+
+	<section>
+		<button class="btn-add" id="toggle-input-btn">+ Nhập hồ sơ huy hiệu cũ</button>
+	</section>
+
+	<section class="input-section{% if huy_hieu_legacy_form.errors or huy_hieu_import_form.errors %} show{% endif %}" id="input-section" data-initial-mode="{% if huy_hieu_import_form.errors %}import{% else %}manual{% endif %}">
+		<div class="entry-mode-switch" role="tablist" aria-label="Chọn phương thức nhập hồ sơ huy hiệu cũ">
+			<button type="button" class="mode-btn active" data-mode="manual" role="tab" aria-selected="true">Nhập thủ công</button>
+			<button type="button" class="mode-btn" data-mode="import" role="tab" aria-selected="false">Nhập file</button>
+		</div>
+
+		<div class="card mode-panel active" data-mode-panel="manual">
+			<h2>Nhập hồ sơ huy hiệu cũ</h2>
+			<p>Chỉ lưu cho Đảng viên đã có trong danh sách hệ thống (theo Mã Đảng viên / CCCD / DangVienID).</p>
+			{% if huy_hieu_legacy_form.errors %}
+			<div class="alert">Biểu mẫu nhập tay chưa hợp lệ. Vui lòng kiểm tra các trường đang báo lỗi bên dưới.</div>
+			{% endif %}
+			<div class="table-wrap" style="padding: 0.8rem;">
+				<form method="post" class="inline-create-form" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+					{% csrf_token %}
+					<input type="hidden" name="action_type" value="legacy_single">
+					<div class="form-field{% if huy_hieu_legacy_form.MaDangVien.errors %} has-error{% endif %}">
+						<label for="{{ huy_hieu_legacy_form.MaDangVien.id_for_label }}">{{ huy_hieu_legacy_form.MaDangVien.label }}</label>
+						{{ huy_hieu_legacy_form.MaDangVien }}
+						{% if huy_hieu_legacy_form.MaDangVien.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.MaDangVien.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<div class="form-field{% if huy_hieu_legacy_form.SoCCCD.errors %} has-error{% endif %}">
+						<label for="{{ huy_hieu_legacy_form.SoCCCD.id_for_label }}">{{ huy_hieu_legacy_form.SoCCCD.label }}</label>
+						{{ huy_hieu_legacy_form.SoCCCD }}
+						{% if huy_hieu_legacy_form.SoCCCD.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.SoCCCD.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<div class="form-field{% if huy_hieu_legacy_form.LoaiHuyHieu.errors %} has-error{% endif %}">
+						<label for="{{ huy_hieu_legacy_form.LoaiHuyHieu.id_for_label }}">{{ huy_hieu_legacy_form.LoaiHuyHieu.label }}</label>
+						{{ huy_hieu_legacy_form.LoaiHuyHieu }}
+						{% if huy_hieu_legacy_form.LoaiHuyHieu.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.LoaiHuyHieu.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<div class="form-field{% if huy_hieu_legacy_form.NgayDuDieuKien.errors %} has-error{% endif %}">
+						<label for="{{ huy_hieu_legacy_form.NgayDuDieuKien.id_for_label }}">{{ huy_hieu_legacy_form.NgayDuDieuKien.label }}</label>
+						{{ huy_hieu_legacy_form.NgayDuDieuKien }}
+						{% if huy_hieu_legacy_form.NgayDuDieuKien.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.NgayDuDieuKien.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<div class="form-field{% if huy_hieu_legacy_form.DotTraoTang.errors %} has-error{% endif %}">
+						<label for="{{ huy_hieu_legacy_form.DotTraoTang.id_for_label }}">{{ huy_hieu_legacy_form.DotTraoTang.label }}</label>
+						{{ huy_hieu_legacy_form.DotTraoTang }}
+						{% if huy_hieu_legacy_form.DotTraoTang.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.DotTraoTang.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<div class="form-field{% if huy_hieu_legacy_form.TrangThai.errors %} has-error{% endif %}">
+						<label for="{{ huy_hieu_legacy_form.TrangThai.id_for_label }}">{{ huy_hieu_legacy_form.TrangThai.label }}</label>
+						{{ huy_hieu_legacy_form.TrangThai }}
+						{% if huy_hieu_legacy_form.TrangThai.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.TrangThai.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<div class="form-field{% if huy_hieu_legacy_form.SoQuyetDinh.errors %} has-error{% endif %}">
+						<label for="{{ huy_hieu_legacy_form.SoQuyetDinh.id_for_label }}">{{ huy_hieu_legacy_form.SoQuyetDinh.label }}</label>
+						{{ huy_hieu_legacy_form.SoQuyetDinh }}
+						{% if huy_hieu_legacy_form.SoQuyetDinh.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.SoQuyetDinh.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<div class="form-field{% if huy_hieu_legacy_form.NgayTrao.errors %} has-error{% endif %}">
+						<label for="{{ huy_hieu_legacy_form.NgayTrao.id_for_label }}">{{ huy_hieu_legacy_form.NgayTrao.label }}</label>
+						{{ huy_hieu_legacy_form.NgayTrao }}
+						{% if huy_hieu_legacy_form.NgayTrao.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.NgayTrao.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<div class="form-field{% if huy_hieu_legacy_form.GhiChu.errors %} has-error{% endif %}" style="grid-column: 1 / -1;">
+						<label for="{{ huy_hieu_legacy_form.GhiChu.id_for_label }}">{{ huy_hieu_legacy_form.GhiChu.label }}</label>
+						{{ huy_hieu_legacy_form.GhiChu }}
+						{% if huy_hieu_legacy_form.GhiChu.errors %}
+						<div class="help">{{ huy_hieu_legacy_form.GhiChu.errors|striptags }}</div>
+						{% endif %}
+					</div>
+					<button type="submit">Lưu hồ sơ cũ</button>
+				</form>
+			</div>
+		</div>
+
+		<div class="card mode-panel" data-mode-panel="import">
+			<h2>Nhập file CSV/Excel huy hiệu</h2>
+			{% if huy_hieu_import_form.errors %}
+			<div class="alert">File import chưa hợp lệ. Vui lòng kiểm tra lại tệp đã chọn.</div>
+			{% endif %}
+			<form method="post" enctype="multipart/form-data" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+				{% csrf_token %}
+				<input type="hidden" name="action_type" value="legacy_import">
+				<div class="form-field{% if huy_hieu_import_form.import_file.errors %} has-error{% endif %}" style="min-width: 280px;">
+					<label for="{{ huy_hieu_import_form.import_file.id_for_label }}">{{ huy_hieu_import_form.import_file.label }}</label>
+					{{ huy_hieu_import_form.import_file }}
+					{% if huy_hieu_import_form.import_file.errors %}
+					<div class="help">{{ huy_hieu_import_form.import_file.errors|striptags }}</div>
+					{% endif %}
+				</div>
+				<button type="submit">Import file huy hiệu</button>
+			</form>
+			<p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--muted-foreground);">
+				Cột hỗ trợ: DangVienID hoặc MaDangVien hoặc SoCCCD, LoaiHuyHieu, NgayDuDieuKien, DotTraoTang, TrangThai, SoQuyetDinh, NgayTrao, GhiChu.
+			</p>
+		</div>
+	</section>
+
+	<section class="card">
+		<h2>Đảng viên đủ điều kiện xét Huy hiệu</h2>
+		<p>Ngày xét: <b>{% if selected_ceremony_key == "all" %}{{ review_date_label }}{% else %}{{ review_date|date:"d/m/Y" }}{% endif %}</b> | Số lượng đủ điều kiện: <b>{{ total_eligible }}</b></p>
+		<div class="table-wrap">
+			<table>
+				<thead>
+					<tr>
+						<th>STT</th>
+						<th>Đảng viên</th>
+						<th>Chi bộ</th>
+						<th>Ngày vào Đảng</th>
+						<th>Tuổi Đảng tại ngày xét</th>
+						<th>Đủ điều kiện Huy hiệu</th>
+						<th>Ngày đủ điều kiện</th>
+						<th>Nhập thông tin truy tặng / trao</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for row in eligible_members %}
+					<tr>
+						<td>{{ forloop.counter }}</td>
+						<td>{{ row.dang_vien.HoTen }}</td>
+						<td>{{ row.dang_vien.ChiBoID.TenChiBo }}</td>
+						<td>{{ row.dang_vien.NgayVaoDang|date:"d/m/Y" }}</td>
+						<td>{{ row.party_age }}</td>
+						<td>{{ row.eligible_for_years }} năm</td>
+						<td>{{ row.eligible_date|date:"d/m/Y" }}</td>
+						<td>
+							<form method="post" class="inline-create-form">
+								{% csrf_token %}
+								<input type="hidden" name="dang_vien_id" value="{{ row.dang_vien.DangVienID }}">
+								<input type="hidden" name="eligible_for_years" value="{{ row.eligible_for_years }}">
+								<input type="hidden" name="eligible_date" value="{{ row.eligible_date|date:'Y-m-d' }}">
+								<label class="reveal-line">
+									<input type="checkbox" class="reveal-award-inputs" data-target="award-inputs-{{ row.dang_vien.DangVienID }}-{{ row.eligible_for_years }}">
+									<span>Nhập</span>
+								</label>
+								<div id="award-inputs-{{ row.dang_vien.DangVienID }}-{{ row.eligible_for_years }}" class="award-inputs">
+									<input type="text" name="so_quyet_dinh" placeholder="Số quyết định" required data-required="true" disabled>
+									<input type="date" name="ngay_trao" required data-required="true" disabled>
+									<label class="checkbox-line">
+										<input type="checkbox" name="la_truy_tang" disabled>
+										<span>Truy tặng</span>
+									</label>
+									<input type="text" name="ghi_chu" placeholder="Ghi chú (nếu có)" style="grid-column: 1 / -1;" disabled>
+									<button type="submit" disabled>Lưu huy hiệu</button>
+								</div>
+							</form>
+						</td>
+					</tr>
+					{% empty %}
+					<tr>
+						<td colspan="8">Không có Đảng viên đủ điều kiện theo bộ lọc hiện tại.</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</section>
+
+	<section class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th>STT</th>
+					<th>Đảng viên</th>
+					<th>Loại huy hiệu</th>
+					<th>Ngày đủ điều kiện</th>
+					<th>Đợt trao tặng</th>
+					<th>Trạng thái</th>
+					<th>Số quyết định</th>
+					<th>Ngày trao</th>
+					<th>Thao tác</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for item in huyhieu_list %}
+				<tr>
+					<td>{{ forloop.counter }}</td>
+					<td>{{ item.DangVienID.HoTen }}</td>
+					<td>{{ item.LoaiHuyHieu }}</td>
+					<td>{{ item.NgayDuDieuKien|date:"d/m/Y" }}</td>
+					<td>{{ item.DotTraoTang }}</td>
+					<td>{{ item.TrangThai }}</td>
+					<td>{{ item.SoQuyetDinh }}</td>
+					<td>{{ item.NgayTrao|date:"d/m/Y" }}</td>
+					<td>
+						<div class="actions-cell">
+							<a href="{% url 'huyhieu_edit' item.HuyHieuID %}" class="btn-action">Sửa</a>
+							<form method="post" action="{% url 'huyhieu_delete' item.HuyHieuID %}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa hồ sơ Huy hiệu này?');">
+								{% csrf_token %}
+								<button type="submit" class="btn-action btn-danger">Xóa</button>
+							</form>
+						</div>
+					</td>
+				</tr>
+				{% empty %}
+				<tr>
+					<td colspan="9">Chưa có dữ liệu Huy hiệu Đảng.</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	(function () {
+		const yearInput = document.getElementById("id_year");
+		if (yearInput) {
+			yearInput.addEventListener("keydown", function (event) {
+				const allowedControlKeys = [
+					"Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Home", "End",
+				];
+				if (allowedControlKeys.includes(event.key)) return;
+				if (/^[0-9]$/.test(event.key)) return;
+				event.preventDefault();
+			});
+
+			yearInput.addEventListener("paste", function (event) {
+				event.preventDefault();
+				const pasted = (event.clipboardData || window.clipboardData).getData("text") || "";
+				const digitsOnly = pasted.replace(/\D/g, "");
+				if (digitsOnly) {
+					yearInput.value = digitsOnly;
+					yearInput.dispatchEvent(new Event("input", { bubbles: true }));
+				}
+			});
+
+			yearInput.addEventListener("input", function () {
+				this.value = this.value.replace(/\D/g, "");
+			});
+		}
+
+		const toggleBtn = document.getElementById("toggle-input-btn");
+		const inputSection = document.getElementById("input-section");
+		const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
+		const modePanels = Array.from(document.querySelectorAll(".mode-panel"));
+
+		if (!toggleBtn || !inputSection || modeButtons.length === 0 || modePanels.length === 0) return;
+
+		const setMode = function (mode) {
+			modeButtons.forEach(function (btn) {
+				const isActive = btn.dataset.mode === mode;
+				btn.classList.toggle("active", isActive);
+				btn.setAttribute("aria-selected", isActive ? "true" : "false");
+			});
+
+			modePanels.forEach(function (panel) {
+				panel.classList.toggle("active", panel.dataset.modePanel === mode);
+			});
+		};
+
+		const initialMode = inputSection.dataset.initialMode || "manual";
+		setMode(initialMode);
+
+		toggleBtn.addEventListener("click", function () {
+			const isOpen = inputSection.classList.toggle("show");
+			toggleBtn.textContent = isOpen ? "- Ẩn form" : "+ Nhập hồ sơ huy hiệu cũ";
+		});
+
+		modeButtons.forEach(function (btn) {
+			btn.addEventListener("click", function () {
+				setMode(btn.dataset.mode || "manual");
+			});
+		});
+
+		const revealToggles = Array.from(document.querySelectorAll(".reveal-award-inputs"));
+		revealToggles.forEach(function (toggle) {
+			const targetId = toggle.dataset.target;
+			const target = targetId ? document.getElementById(targetId) : null;
+			if (!target) return;
+
+			const updateState = function () {
+				const isOpen = !!toggle.checked;
+				target.classList.toggle("show", isOpen);
+				Array.from(target.querySelectorAll("input, select, textarea, button")).forEach(function (el) {
+					el.disabled = !isOpen;
+					if (el.hasAttribute("data-required")) {
+						el.required = isOpen;
+					}
+				});
+			};
+
+			toggle.addEventListener("change", updateState);
+			updateState();
+		});
+	})();
+</script>
+{% endblock %}

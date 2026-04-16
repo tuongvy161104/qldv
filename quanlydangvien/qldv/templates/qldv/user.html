@@ -1,0 +1,541 @@
+﻿{% extends "qldv/base.html" %}
+
+{% block title %}Quản lý Người dùng{% endblock %}
+{% block page_header %}Quản lý Người dùng{% endblock %}
+
+{% block extra_css %}
+<style>
+	.usr-page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.usr-heading h1 {
+		font-size: 1.6rem;
+		margin: 0;
+	}
+
+	.usr-heading p {
+		margin: 0.3rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.usr-roles {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.8rem;
+	}
+
+	.usr-role {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.85rem;
+		background: color-mix(in oklab, var(--card) 95%, white 5%);
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.usr-role-icon {
+		width: 2.3rem;
+		height: 2.3rem;
+		border-radius: 0.6rem;
+		display: grid;
+		place-items: center;
+		font-size: 1rem;
+		font-weight: 700;
+	}
+
+	.usr-role-icon[data-role="admin"] {
+		background: color-mix(in oklab, #ef4444 17%, white 83%);
+		color: #b91c1c;
+	}
+
+	.usr-role-icon[data-role="manager"] {
+		background: color-mix(in oklab, #3b82f6 17%, white 83%);
+		color: #1d4ed8;
+	}
+
+	.usr-role-icon[data-role="viewer"] {
+		background: color-mix(in oklab, #64748b 17%, white 83%);
+		color: #334155;
+	}
+
+	.usr-role-title {
+		font-weight: 700;
+	}
+
+	.usr-role-sub {
+		font-size: 0.85rem;
+		color: var(--muted-foreground);
+	}
+
+	.usr-toolbar {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 0.8rem;
+	}
+
+	.usr-search {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0 0.75rem;
+		background: color-mix(in oklab, var(--input-background) 75%, white 25%);
+	}
+
+	.usr-search input {
+		width: 100%;
+		border: 0;
+		background: transparent;
+		padding: 0.65rem 0;
+	}
+
+	.usr-btn-primary {
+		border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
+		background: color-mix(in oklab, var(--destructive) 75%, #9f1239 25%);
+		color: #fff;
+		padding: 0.6rem 0.95rem;
+		border-radius: calc(var(--radius) - 2px);
+		cursor: pointer;
+	}
+
+	.usr-btn-primary:hover {
+		filter: brightness(0.95);
+	}
+
+	.usr-table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+	}
+
+	.usr-table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 920px;
+	}
+
+	.usr-table thead {
+		background: color-mix(in oklab, var(--muted) 70%, white 30%);
+	}
+
+	.usr-table th,
+	.usr-table td {
+		padding: 0.75rem;
+		text-align: left;
+		border-bottom: 1px solid var(--border);
+		font-size: 0.92rem;
+	}
+
+	.usr-table th:last-child,
+	.usr-table td:last-child {
+		text-align: center;
+	}
+
+	.usr-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.18rem 0.65rem;
+		border-radius: 999px;
+		font-size: 0.76rem;
+		font-weight: 600;
+	}
+
+	.usr-badge[data-role="admin"] {
+		background: color-mix(in oklab, #ef4444 17%, white 83%);
+		color: #b91c1c;
+	}
+
+	.usr-badge[data-role="manager"] {
+		background: color-mix(in oklab, #3b82f6 17%, white 83%);
+		color: #1d4ed8;
+	}
+
+	.usr-badge[data-role="viewer"] {
+		background: color-mix(in oklab, #94a3b8 20%, white 80%);
+		color: #334155;
+	}
+
+	.usr-actions {
+		display: flex;
+		justify-content: center;
+		gap: 0.35rem;
+	}
+
+	.usr-btn-icon {
+		border: 1px solid var(--border);
+		background: var(--card);
+		border-radius: 0.45rem;
+		padding: 0.3rem 0.5rem;
+		cursor: pointer;
+	}
+
+	.usr-btn-icon[data-kind="danger"] {
+		color: var(--destructive);
+		border-color: color-mix(in oklab, var(--destructive) 40%, var(--border));
+	}
+
+	.usr-btn-icon:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+
+	.usr-empty {
+		padding: 1.2rem;
+		text-align: center;
+		color: var(--muted-foreground);
+	}
+
+	.usr-modal {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.45);
+		display: none;
+		align-items: center;
+		justify-content: center;
+		z-index: 50;
+		padding: 1rem;
+	}
+
+	.usr-modal.show {
+		display: flex;
+	}
+
+	.usr-modal-card {
+		width: min(100%, 500px);
+		background: var(--card);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+	}
+
+	.usr-grid {
+		display: grid;
+		gap: 0.7rem;
+	}
+
+	.usr-field {
+		display: grid;
+		gap: 0.3rem;
+	}
+
+	.usr-actions-modal {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5rem;
+		margin-top: 0.8rem;
+	}
+
+	@media (max-width: 860px) {
+		.usr-roles {
+			grid-template-columns: 1fr;
+		}
+
+		.usr-toolbar {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="usr-page">
+	<section class="usr-heading">
+		<h1>Quản lý người dùng</h1>
+		<p>Cấp quyền và quản lý tài khoản người dùng.</p>
+	</section>
+
+	<section class="usr-roles">
+		<div class="usr-role">
+			<div class="usr-role-icon" data-role="admin">A</div>
+			<div>
+				<div class="usr-role-title">Quản trị viên</div>
+				<div class="usr-role-sub">Toàn quyền hệ thống</div>
+			</div>
+		</div>
+		<div class="usr-role">
+			<div class="usr-role-icon" data-role="manager">M</div>
+			<div>
+				<div class="usr-role-title">Quản lý</div>
+				<div class="usr-role-sub">Quản lý Đảng viên</div>
+			</div>
+		</div>
+		<div class="usr-role">
+			<div class="usr-role-icon" data-role="viewer">V</div>
+			<div>
+				<div class="usr-role-title">Người xem</div>
+				<div class="usr-role-sub">Chỉ xem dữ liệu</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="usr-toolbar">
+		<label class="usr-search" for="search-input">
+			<span aria-hidden="true">Tìm</span>
+			<input id="search-input" type="text" placeholder="Tìm kiếm người dùng...">
+		</label>
+		<button class="usr-btn-primary" id="add-button" type="button">+ Thêm người dùng</button>
+	</section>
+
+	<section class="usr-table-wrap">
+		<table class="usr-table">
+			<thead>
+				<tr>
+					<th>STT</th>
+					<th>Tên đăng nhập</th>
+					<th>Họ tên</th>
+					<th>Email</th>
+					<th>Vai trò</th>
+					<th>Ngày tạo</th>
+					<th>Thao tác</th>
+				</tr>
+			</thead>
+			<tbody id="user-tbody"></tbody>
+		</table>
+		<div id="empty-state" class="usr-empty" style="display:none;">Không tìm thấy người dùng phù hợp.</div>
+	</section>
+</div>
+
+<div class="usr-modal" id="user-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+	<div class="usr-modal-card">
+		<h3 id="modal-title">Thêm người dùng mới</h3>
+		<form id="user-form" class="usr-grid">
+			<div class="usr-field">
+				<label for="username">Tên đăng nhập</label>
+				<input id="username" name="username" type="text" required>
+			</div>
+			<div class="usr-field">
+				<label for="fullName">Họ tên</label>
+				<input id="fullName" name="fullName" type="text" required>
+			</div>
+			<div class="usr-field">
+				<label for="email">Email</label>
+				<input id="email" name="email" type="email" required>
+			</div>
+			<div class="usr-field">
+				<label for="role">Vai trò</label>
+				<select id="role" name="role">
+					<option value="viewer">Người xem</option>
+					<option value="manager">Quản lý</option>
+					<option value="admin">Quản trị viên</option>
+				</select>
+			</div>
+			<div class="usr-actions-modal">
+				<button class="btn" type="button" id="cancel-button">Hủy</button>
+				<button class="usr-btn-primary" type="submit" id="submit-button">Thêm</button>
+			</div>
+		</form>
+	</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	(function () {
+		let users = [
+			{ id: "1", username: "admin", fullName: "Quản trị viên", role: "admin", email: "admin@example.com", createdAt: "2024-01-01" },
+			{ id: "2", username: "manager1", fullName: "Nguyễn Văn Manager", role: "manager", email: "manager@example.com", createdAt: "2024-02-15" },
+			{ id: "3", username: "viewer1", fullName: "Trần Thị Viewer", role: "viewer", email: "viewer@example.com", createdAt: "2024-03-20" }
+		];
+
+		let searchTerm = "";
+		let editingId = null;
+
+		const tbody = document.getElementById("user-tbody");
+		const emptyState = document.getElementById("empty-state");
+		const searchInput = document.getElementById("search-input");
+		const addButton = document.getElementById("add-button");
+
+		const modal = document.getElementById("user-modal");
+		const modalTitle = document.getElementById("modal-title");
+		const form = document.getElementById("user-form");
+		const submitButton = document.getElementById("submit-button");
+		const cancelButton = document.getElementById("cancel-button");
+
+		const usernameInput = document.getElementById("username");
+		const fullNameInput = document.getElementById("fullName");
+		const emailInput = document.getElementById("email");
+		const roleInput = document.getElementById("role");
+
+		function formatDate(dateString) {
+			const date = new Date(dateString);
+			if (Number.isNaN(date.getTime())) {
+				return "-";
+			}
+			const d = String(date.getDate()).padStart(2, "0");
+			const m = String(date.getMonth() + 1).padStart(2, "0");
+			const y = date.getFullYear();
+			return `${d}/${m}/${y}`;
+		}
+
+		function getRoleLabel(role) {
+			if (role === "admin") {
+				return "Quản trị viên";
+			}
+			if (role === "manager") {
+				return "Quản lý";
+			}
+			return "Người xem";
+		}
+
+		function getFilteredUsers() {
+			const keyword = searchTerm.trim().toLowerCase();
+			if (!keyword) {
+				return users;
+			}
+			return users.filter((user) => {
+				return user.fullName.toLowerCase().includes(keyword) || user.username.toLowerCase().includes(keyword) || user.email.toLowerCase().includes(keyword);
+			});
+		}
+
+		function renderRows() {
+			const rows = getFilteredUsers();
+			tbody.innerHTML = "";
+
+			if (!rows.length) {
+				emptyState.style.display = "block";
+				return;
+			}
+
+			emptyState.style.display = "none";
+			rows.forEach((user, index) => {
+				const tr = document.createElement("tr");
+				tr.innerHTML = `
+					<td>${index + 1}</td>
+					<td><strong>${user.username}</strong></td>
+					<td>${user.fullName}</td>
+					<td>${user.email}</td>
+					<td><span class="usr-badge" data-role="${user.role}">${getRoleLabel(user.role)}</span></td>
+					<td>${formatDate(user.createdAt)}</td>
+					<td>
+						<div class="usr-actions">
+							<button type="button" class="usr-btn-icon" data-action="edit" data-id="${user.id}">Sửa</button>
+							<button type="button" class="usr-btn-icon" data-kind="danger" data-action="delete" data-id="${user.id}" ${user.role === "admin" ? "disabled" : ""}>Xóa</button>
+						</div>
+					</td>
+				`;
+				tbody.appendChild(tr);
+			});
+		}
+
+		function openModal(user) {
+			modal.classList.add("show");
+			if (user) {
+				editingId = user.id;
+				modalTitle.textContent = "Sửa người dùng";
+				submitButton.textContent = "Cập nhật";
+				usernameInput.value = user.username;
+				fullNameInput.value = user.fullName;
+				emailInput.value = user.email;
+				roleInput.value = user.role;
+			} else {
+				editingId = null;
+				modalTitle.textContent = "Thêm người dùng mới";
+				submitButton.textContent = "Thêm";
+				form.reset();
+				roleInput.value = "viewer";
+			}
+		}
+
+		function closeModal() {
+			modal.classList.remove("show");
+			editingId = null;
+		}
+
+		tbody.addEventListener("click", function (event) {
+			const target = event.target;
+			if (!(target instanceof HTMLElement)) {
+				return;
+			}
+
+			const action = target.dataset.action;
+			const id = target.dataset.id;
+			if (!action || !id) {
+				return;
+			}
+
+			if (action === "edit") {
+				const user = users.find((u) => u.id === id);
+				if (user) {
+					openModal(user);
+				}
+				return;
+			}
+
+			if (action === "delete") {
+				const user = users.find((u) => u.id === id);
+				if (!user || user.role === "admin") {
+					return;
+				}
+				const ok = window.confirm("Bạn có chắc chắn muốn xóa người dùng này?");
+				if (!ok) {
+					return;
+				}
+				users = users.filter((u) => u.id !== id);
+				renderRows();
+			}
+		});
+
+		searchInput.addEventListener("input", function () {
+			searchTerm = searchInput.value;
+			renderRows();
+		});
+
+		addButton.addEventListener("click", function () {
+			openModal(null);
+		});
+
+		cancelButton.addEventListener("click", function () {
+			closeModal();
+		});
+
+		modal.addEventListener("click", function (event) {
+			if (event.target === modal) {
+				closeModal();
+			}
+		});
+
+		form.addEventListener("submit", function (event) {
+			event.preventDefault();
+
+			const payload = {
+				username: usernameInput.value.trim(),
+				fullName: fullNameInput.value.trim(),
+				email: emailInput.value.trim(),
+				role: roleInput.value
+			};
+
+			if (!payload.username || !payload.fullName || !payload.email) {
+				return;
+			}
+
+			if (editingId) {
+				users = users.map((u) => {
+					if (u.id !== editingId) {
+						return u;
+					}
+					return { ...u, ...payload };
+				});
+			} else {
+				users.push({
+					id: String(Date.now()),
+					...payload,
+					createdAt: new Date().toISOString().split("T")[0]
+				});
+			}
+
+			closeModal();
+			renderRows();
+		});
+
+		renderRows();
+	})();
+</script>
+{% endblock %}
+
+
+
+

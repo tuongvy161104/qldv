@@ -1,0 +1,258 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Xem/xuất dữ liệu Chi bộ{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.page-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head p {
+		margin: 0.35rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.head-actions {
+		display: inline-flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.95rem;
+		background: #fff;
+	}
+
+	.filter-toolbar {
+		display: flex;
+		gap: 0.55rem;
+		align-items: center;
+		flex-wrap: nowrap;
+	}
+
+	.filter-toolbar > * {
+		flex: 0 0 auto;
+	}
+
+	.filter-toolbar input,
+	.filter-toolbar select {
+		height: 2rem;
+		padding: 0.25rem 0.55rem;
+		font-size: 0.86rem;
+	}
+
+	.filter-toolbar .control-keyword {
+		width: 205px;
+		max-width: 100%;
+	}
+
+	.filter-toolbar .control-small {
+		width: 118px;
+	}
+
+	.filter-toolbar .control-keyword {
+		width: 205px;
+		max-width: 100%;
+	}
+
+	.filter-btn {
+		min-width: 108px;
+		height: 2rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.filter-btn-primary {
+		border: 1px solid #dc2626;
+		background: #dc2626;
+		color: #fff;
+		font-weight: 600;
+	}
+
+	.filter-actions {
+		display: inline-flex;
+		gap: 0.4rem;
+		align-items: center;
+		flex-wrap: nowrap;
+	}
+
+	.download-box {
+		display: flex;
+		align-items: flex-end;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		margin-top: 0.8rem;
+	}
+
+	.download-box input,
+	.download-box select {
+		height: 2rem;
+		padding: 0.25rem 0.55rem;
+		font-size: 0.86rem;
+	}
+
+	.download-box select {
+		width: 100px;
+	}
+
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+	}
+
+	.actions-cell {
+		display: flex;
+		gap: 0.45rem;
+		align-items: center;
+	}
+
+	.btn-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 3px);
+		padding: 0.32rem 0.55rem;
+		background: #fff;
+		color: var(--foreground);
+		cursor: pointer;
+		font-size: 0.88rem;
+	}
+
+	.btn-action:hover {
+		background: var(--muted);
+	}
+
+	.btn-action.btn-danger {
+		color: #9f1239;
+		border-color: color-mix(in oklab, #9f1239 40%, var(--border));
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 860px;
+	}
+
+	th,
+	td {
+		padding: 0.7rem;
+		text-align: left;
+		border-bottom: 1px solid var(--border);
+	}
+
+	thead {
+		background: color-mix(in oklab, var(--muted) 70%, white 30%);
+	}
+
+	@media (max-width: 980px) {
+		.filter-toolbar {
+			flex-wrap: wrap;
+		}
+
+		.filter-toolbar > * {
+			flex: initial;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section class="page-head">
+		<div>
+			<h1>Xem/xuất dữ liệu Chi bộ</h1>
+			<p>Lọc danh sách theo Địa bàn, Trạng thái và xuất dữ liệu CSV/Excel.</p>
+		</div>
+	</section>
+
+	<section class="card">
+		<form method="get" class="filter-toolbar">
+			<input id="q" class="control-keyword" type="text" name="q" value="{{ filters.q }}" placeholder="Từ khóa: Tên Chi bộ" aria-label="Từ khóa">
+			<select id="filter-dia-ban" class="control-small" name="dia_ban" aria-label="Địa bàn">
+				<option value="">Địa bàn</option>
+				{% for value in dia_ban_options %}
+				<option value="{{ value }}" {% if filters.dia_ban == value %}selected{% endif %}>{{ value }}</option>
+				{% endfor %}
+			</select>
+			<select id="filter-trang-thai" class="control-small" name="trang_thai" aria-label="Trạng thái">
+				<option value="">Trạng thái</option>
+				{% for value in trang_thai_options %}
+				<option value="{{ value }}" {% if filters.trang_thai == value %}selected{% endif %}>{{ value }}</option>
+				{% endfor %}
+			</select>
+			<div class="filter-actions">
+				<button type="submit" class="btn filter-btn filter-btn-primary">Lọc dữ liệu</button>
+				<a href="{% url 'chibo_data' %}" class="btn filter-btn">Xóa bộ lọc</a>
+			</div>
+		</form>
+		<form method="get" class="download-box">
+			<input type="hidden" name="q" value="{{ filters.q }}">
+			<input type="hidden" name="dia_ban" value="{{ filters.dia_ban }}">
+			<input type="hidden" name="trang_thai" value="{{ filters.trang_thai }}">
+			<label for="download" style="font-size:0.86rem;color:var(--muted-foreground);">Tải dữ liệu</label>
+			<select id="download" name="download">
+				<option value="csv">CSV</option>
+				<option value="excel">Excel</option>
+			</select>
+			<button type="submit" class="btn">Download</button>
+		</form>
+	</section>
+
+	<section class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th>STT</th>
+					<th>Tên Chi bộ</th>
+					<th>Đảng bộ</th>
+					<th>Địa bàn</th>
+					<th>Trạng thái</th>
+					<th>Số Đảng viên</th>
+					<th>Thao tác</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for item in chibo_list %}
+				<tr>
+					<td>{{ forloop.counter }}</td>
+					<td>{{ item.TenChiBo }}</td>
+					<td>{{ item.DangBoID.TenDangBo }}</td>
+					<td>{{ item.DiaBan }}</td>
+					<td>{{ item.TrangThai }}</td>
+					<td>{{ item.so_dang_vien }}</td>
+					<td>
+						<div class="actions-cell">
+							<a href="{% url 'chibo_edit' item.ChiBoID %}" class="btn-action">Sửa</a>
+							<form method="post" action="{% url 'chibo_delete' item.ChiBoID %}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa Chi bộ này?');">
+								{% csrf_token %}
+								<input type="hidden" name="next" value="{{ current_full_path }}">
+								<button type="submit" class="btn-action btn-danger">Xóa</button>
+							</form>
+						</div>
+					</td>
+				</tr>
+				{% empty %}
+				<tr>
+					<td colspan="7">Không có dữ liệu phù hợp với bộ lọc.</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</section>
+</div>
+{% endblock %}

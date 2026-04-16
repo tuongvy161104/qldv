@@ -1,0 +1,951 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>{% block title %}Quản lý Đảng viên{% endblock %}</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+	<style>
+		:root {
+			--font-size: 14px;
+			--background: #ffffff;
+			--foreground: #0f172a;
+			--card: #ffffff;
+			--card-foreground: #0f172a;
+			--popover: oklch(1 0 0);
+			--popover-foreground: #0f172a;
+			--primary: #c4001a;
+			--primary-foreground: #ffffff;
+			--secondary: #f8fafc;
+			--secondary-foreground: #0f172a;
+			--muted: #f1f5f9;
+			--muted-foreground: #64748b;
+			--accent: #f8d7dd;
+			--accent-foreground: #7f1d1d;
+			--destructive: #dc2626;
+			--destructive-foreground: #ffffff;
+			--border: rgba(15, 23, 42, 0.12);
+			--input: transparent;
+			--input-background: #f8fafc;
+			--switch-background: #cbced4;
+			--font-weight-medium: 500;
+			--font-weight-normal: 400;
+			--ring: #ef4444;
+			--chart-1: oklch(0.646 0.222 41.116);
+			--chart-2: oklch(0.6 0.118 184.704);
+			--chart-3: oklch(0.398 0.07 227.392);
+			--chart-4: oklch(0.828 0.189 84.429);
+			--chart-5: oklch(0.769 0.188 70.08);
+			--radius: 0.625rem;
+			--sidebar: #b00018;
+			--sidebar-foreground: #fef2f2;
+			--sidebar-primary: #8f0014;
+			--sidebar-primary-foreground: #ffffff;
+			--sidebar-accent: rgba(255, 255, 255, 0.12);
+			--sidebar-accent-foreground: #ffffff;
+			--sidebar-border: rgba(255, 255, 255, 0.15);
+			--sidebar-ring: #ffffff;
+		}
+
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+			border: 0;
+			margin-top: 0 !important;
+			padding-top: 0 !important;
+			overflow: hidden;
+			overscroll-behavior: none;
+		}
+
+		html {
+			font-size: var(--font-size);
+			height: 100%;
+		}
+
+		* {
+			box-sizing: border-box;
+			border-color: var(--border);
+			outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+		}
+
+		body {
+			height: 100%;
+			min-height: 100vh;
+			background:
+				radial-gradient(circle at 0% 0%, rgba(196, 0, 26, 0.06), transparent 40%),
+				linear-gradient(180deg, #f8fafc 0%, var(--background) 48%);
+			color: var(--foreground);
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+			font-weight: var(--font-weight-normal);
+			line-height: 1.5;
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+		}
+
+		h1, h2, h3, h4, label, button {
+			font-weight: var(--font-weight-medium);
+			margin: 0;
+		}
+
+		h1 { font-size: 1.5rem; }
+		h2 { font-size: 1.25rem; }
+		h3 { font-size: 1.125rem; }
+		h4 { font-size: 1rem; }
+
+		input, textarea, select {
+			font-size: 1rem;
+			font-family: inherit;
+			color: var(--foreground);
+			background: var(--input-background);
+			border: 1px solid var(--border);
+			border-radius: calc(var(--radius) - 2px);
+			padding: 0.55rem 0.75rem;
+		}
+
+		input:focus,
+		textarea:focus,
+		select:focus,
+		button:focus {
+			outline: 2px solid color-mix(in oklab, var(--ring) 55%, transparent);
+			outline-offset: 2px;
+		}
+
+		a {
+			color: inherit;
+			text-decoration: none;
+		}
+
+		.app-shell {
+			--sidebar-width: 280px;
+			margin: 0;
+			padding: 0;
+			margin-top: 0 !important;
+			padding-top: 0 !important;
+			position: fixed;
+			inset: 0;
+			height: 100dvh;
+			display: grid;
+			grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+		}
+
+		.app-shell.no-sidebar {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.app-shell.sidebar-collapsed {
+			--sidebar-width: 0px;
+		}
+
+		.sidebar {
+			background: linear-gradient(180deg, #bf001a 0%, #9f0016 100%);
+			color: var(--sidebar-foreground);
+			border-right: 1px solid color-mix(in srgb, var(--sidebar-border) 60%, transparent);
+			padding: 1.25rem;
+			position: sticky;
+			top: 0;
+			height: 100dvh;
+			display: flex;
+			flex-direction: column;
+			gap: 1.25rem;
+			overflow-y: auto;
+			transition: transform 0.22s ease, opacity 0.22s ease;
+		}
+
+		.app-shell.sidebar-collapsed .sidebar {
+			width: 0;
+			min-width: 0;
+			padding: 0;
+			border-right: 0;
+			overflow: hidden;
+			transform: none;
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		.sidebar-brand {
+			border-radius: var(--radius);
+			background: linear-gradient(145deg, #8f0014 0%, #730010 100%);
+			color: var(--sidebar-primary-foreground);
+			padding: 1rem;
+			box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+		}
+
+		.sidebar-brand p {
+			margin: 0.25rem 0 0;
+			opacity: 0.85;
+			font-size: 0.9rem;
+		}
+
+		.nav-list {
+			display: grid;
+			gap: 0.5rem;
+		}
+
+		.nav-group {
+			display: grid;
+			gap: 0.25rem;
+		}
+
+		.nav-group-head {
+			position: relative;
+			display: block;
+		}
+
+		.nav-group-head .nav-link {
+			width: 100%;
+			padding-right: 2.25rem;
+		}
+
+		.nav-group-head .nav-link:hover {
+			transform: none;
+		}
+
+		.nav-group-toggle {
+			appearance: none;
+			position: absolute;
+			right: 0.42rem;
+			top: 50%;
+			transform: translateY(-50%);
+			z-index: 2;
+			border: 0;
+			background: transparent;
+			color: color-mix(in srgb, var(--sidebar-foreground) 90%, transparent);
+			border-radius: 999px;
+			width: 1.5rem;
+			height: 1.5rem;
+			padding: 0;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: background-color 0.2s ease, color 0.2s ease;
+		}
+
+		.nav-group-toggle:hover {
+			background: color-mix(in srgb, var(--sidebar-accent) 90%, transparent);
+			color: #ffffff;
+		}
+
+		.nav-group-head:hover .nav-link {
+			background: var(--sidebar-accent);
+			border-color: color-mix(in srgb, var(--sidebar-border) 65%, transparent);
+			color: var(--sidebar-accent-foreground);
+			transform: none;
+		}
+
+		.nav-group-head:hover .nav-link.active {
+			background: #7f0012;
+		}
+
+		.nav-group-toggle svg {
+			width: 0.95rem;
+			height: 0.95rem;
+			stroke: currentColor;
+			fill: none;
+			stroke-width: 2.2;
+			stroke-linecap: round;
+			stroke-linejoin: round;
+			transition: transform 0.2s ease;
+		}
+
+		.nav-group.is-collapsed .nav-group-toggle svg {
+			transform: rotate(-90deg);
+		}
+
+		.nav-sublist {
+			display: grid;
+			gap: 0.25rem;
+			margin-left: 1.2rem;
+			max-height: 320px;
+			opacity: 1;
+			overflow: hidden;
+			transition: max-height 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+		}
+
+		.nav-group.is-collapsed .nav-sublist {
+			max-height: 0;
+			opacity: 0;
+			margin-top: 0;
+		}
+
+		.nav-sublink {
+			display: block;
+			padding: 0.45rem 0.7rem;
+			border-radius: calc(var(--radius) - 3px);
+			font-size: 0.9rem;
+			color: color-mix(in srgb, var(--sidebar-foreground) 86%, transparent);
+			border: 1px solid transparent;
+			transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+		}
+
+		.nav-sublink:hover {
+			transform: translateX(2px);
+			background: var(--sidebar-accent);
+			border-color: color-mix(in srgb, var(--sidebar-border) 60%, transparent);
+			color: var(--sidebar-accent-foreground);
+		}
+
+		.nav-sublink.active {
+			background: color-mix(in srgb, #7f0012 82%, white 18%);
+			border-color: rgba(255, 255, 255, 0.25);
+			color: #ffffff;
+			font-weight: 600;
+		}
+
+		.sidebar-hide-btn {
+			margin-top: auto;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.35rem;
+			appearance: none;
+			border: 1px solid var(--sidebar-border);
+			background: color-mix(in srgb, var(--sidebar-accent) 90%, transparent);
+			color: var(--sidebar-foreground);
+			border-radius: calc(var(--radius) - 2px);
+			padding: 0.48rem 0.65rem;
+			cursor: pointer;
+		}
+
+		.sidebar-hide-btn:hover {
+			background: color-mix(in srgb, var(--sidebar-accent) 65%, white 35%);
+		}
+
+		.sidebar-hide-btn svg,
+		.sidebar-open-trigger svg {
+			width: 0.95rem;
+			height: 0.95rem;
+			stroke: currentColor;
+			fill: none;
+			stroke-width: 2.2;
+			stroke-linecap: round;
+			stroke-linejoin: round;
+		}
+
+		.sidebar-open-trigger {
+			display: none;
+			position: absolute;
+			left: 0.4rem;
+			bottom: 0.6rem;
+			z-index: 25;
+			width: 1.9rem;
+			height: 1.9rem;
+			border: 1px solid var(--border);
+			border-radius: calc(var(--radius) - 3px);
+			background: #ffffff;
+			color: var(--foreground);
+			cursor: pointer;
+			align-items: center;
+			justify-content: center;
+			font-size: 1.05rem;
+			line-height: 1;
+		}
+
+		.app-shell.sidebar-collapsed .sidebar-open-trigger {
+			display: inline-flex;
+		}
+
+		.nav-link {
+			display: flex;
+			align-items: center;
+			gap: 0.72rem;
+			padding: 0.7rem 0.8rem;
+			border-radius: calc(var(--radius) - 2px);
+			border: 1px solid transparent;
+			transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+			color: color-mix(in srgb, var(--sidebar-foreground) 92%, transparent);
+		}
+
+		.nav-link-icon {
+			width: 1.25rem;
+			height: 1.25rem;
+			stroke: currentColor;
+			fill: none;
+			stroke-width: 2.1;
+			stroke-linecap: round;
+			stroke-linejoin: round;
+			flex: 0 0 auto;
+		}
+
+		.nav-link-text {
+			line-height: 1.25;
+		}
+
+		.nav-link:hover {
+			transform: translateX(2px);
+			background: var(--sidebar-accent);
+			border-color: color-mix(in srgb, var(--sidebar-border) 65%, transparent);
+			color: var(--sidebar-accent-foreground);
+		}
+
+		.nav-link.active {
+			background: #8f0014;
+			border-color: rgba(255, 255, 255, 0.25);
+			color: var(--sidebar-accent-foreground);
+			font-weight: 600;
+		}
+
+		.nav-link.active:hover {
+			background: #7f0012;
+		}
+
+		.content-wrap {
+			display: grid;
+			grid-template-rows: minmax(0, 1fr);
+			min-width: 0;
+			height: 100dvh;
+			overflow-y: auto;
+			overscroll-behavior: none;
+		}
+
+		.btn {
+			appearance: none;
+			border: 1px solid var(--border);
+			border-radius: calc(var(--radius) - 2px);
+			background: var(--card);
+			color: var(--card-foreground);
+			padding: 0.5rem 0.75rem;
+			cursor: pointer;
+			transition: background-color 0.2s ease, transform 0.2s ease;
+		}
+
+		.btn:hover {
+			background: var(--accent);
+			color: var(--accent-foreground);
+			transform: translateY(-1px);
+		}
+
+		.page-content {
+			padding: 1rem 1.25rem 1.25rem;
+		}
+
+		.flash-list {
+			display: grid;
+			gap: 0.3rem;
+			margin-bottom: 0.5rem;
+		}
+
+		.flash-item {
+			border: 1px solid var(--border);
+			border-radius: calc(var(--radius) - 2px);
+			padding: 0.4rem 1.8rem 0.4rem 0.6rem;
+			white-space: pre-line;
+			font-size: 0.8rem;
+			position: relative;
+			transition: opacity 0.28s ease, transform 0.28s ease;
+		}
+
+		.flash-item.is-hiding {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+
+		.flash-dismiss {
+			appearance: none;
+			border: 0;
+			background: transparent;
+			color: inherit;
+			position: absolute;
+			top: 0.25rem;
+			right: 0.35rem;
+			font-size: 0.9rem;
+			line-height: 1;
+			cursor: pointer;
+			padding: 0.1rem;
+			border-radius: 999px;
+		}
+
+		.flash-dismiss:hover {
+			background: rgba(15, 23, 42, 0.08);
+		}
+
+		.flash-item.flash-success {
+			background: color-mix(in oklab, #16a34a 10%, #ffffff 90%);
+			border-color: color-mix(in oklab, #16a34a 30%, var(--border));
+		}
+
+		.flash-item.flash-warning {
+			background: color-mix(in oklab, #f59e0b 13%, #ffffff 87%);
+			border-color: color-mix(in oklab, #f59e0b 30%, var(--border));
+		}
+
+		.flash-item.flash-error {
+			background: color-mix(in oklab, #dc2626 10%, #ffffff 90%);
+			border-color: color-mix(in oklab, #dc2626 30%, var(--border));
+		}
+
+		.flash-item.flash-info,
+		.flash-item.flash-debug {
+			background: color-mix(in oklab, #0284c7 10%, #ffffff 90%);
+			border-color: color-mix(in oklab, #0284c7 30%, var(--border));
+		}
+
+		.mobile-menu-row {
+			display: none;
+			margin-bottom: 0.7rem;
+		}
+
+		.content-card {
+			background: color-mix(in oklab, var(--card) 94%, white 6%);
+			color: var(--card-foreground);
+			border: 1px solid var(--border);
+			border-radius: var(--radius);
+			padding: 1rem;
+			box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+			animation: fade-in-up 380ms ease both;
+		}
+
+		.required-star {
+			color: #dc2626;
+			margin-left: 0.22rem;
+			font-weight: 700;
+		}
+
+		.mobile-only {
+			display: none;
+		}
+
+		@keyframes fade-in-up {
+			from {
+				opacity: 0;
+				transform: translateY(8px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		@media (max-width: 980px) {
+			.app-shell {
+				grid-template-columns: 1fr;
+			}
+
+			.app-shell.sidebar-collapsed {
+				--sidebar-width: 280px;
+			}
+
+			.app-shell.sidebar-collapsed .sidebar {
+				transform: translateX(-105%);
+				opacity: 1;
+				pointer-events: auto;
+			}
+
+			.sidebar {
+				position: fixed;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				width: min(82vw, 300px);
+				height: auto;
+				transform: translateX(-105%);
+				transition: transform 0.25s ease;
+				z-index: 20;
+				box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+			}
+
+			.sidebar.show {
+				transform: translateX(0);
+			}
+
+			.sidebar-hide-btn,
+			.sidebar-open-trigger {
+				display: none !important;
+			}
+
+			.mobile-only {
+				display: inline-flex;
+			}
+
+			.mobile-menu-row {
+				display: flex;
+			}
+
+			.page-content {
+				padding: 1rem;
+			}
+		}
+	</style>
+
+	{% block extra_css %}{% endblock %}
+</head>
+<body>
+	<div class="app-shell{% if not user.is_authenticated %} no-sidebar{% endif %}">
+		{% if user.is_authenticated %}
+		<aside class="sidebar" id="app-sidebar">
+			<div class="sidebar-brand">
+				<h3>Quản lý Đảng viên</h3>
+			</div>
+
+			<nav class="nav-list">
+				{% if user.is_authenticated %}
+				<div style="
+					padding: 0.5rem 0.7rem;
+					background: rgba(255, 255, 255, 0.08);
+					border-radius: calc(var(--radius) - 2px);
+					margin-bottom: 0.5rem;
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					gap: 0.3rem;
+				">
+					<p style="margin: 0; font-weight: 600; color: white; font-size: 0.85rem; flex: 1;">{{ user.last_name }} {{ user.first_name }}</p>
+					<a href="{% url 'logout' %}" style="
+						display: inline-flex;
+						align-items: center;
+						justify-content: center;
+						padding: 0.4rem;
+						background: transparent;
+						color: white;
+						border-radius: calc(var(--radius) - 3px);
+						text-decoration: none;
+						transition: background 0.2s ease;
+						border: 1px solid transparent;
+						flex-shrink: 0;
+						position: relative;
+					"
+					title="Đăng xuất"
+					onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'; this.style.borderColor='rgba(255, 255, 255, 0.2)';"
+					onmouseout="this.style.background='transparent'; this.style.borderColor='transparent';"
+					>
+						<svg viewBox="0 0 24 24" style="width: 1rem; height: 1rem;" aria-hidden="true" focusable="false">
+							<path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+						</svg>
+					</a>
+				</div>
+				{% endif %}
+
+				<a class="nav-link" href="/">
+					<svg class="nav-link-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<rect x="3" y="3" width="7" height="7" rx="1" />
+						<rect x="14" y="3" width="7" height="7" rx="1" />
+						<rect x="3" y="14" width="7" height="7" rx="1" />
+						<rect x="14" y="14" width="7" height="7" rx="1" />
+					</svg>
+					<span class="nav-link-text">Tổng quan</span>
+				</a>
+
+				{% if user.is_authenticated %}
+				<div class="nav-group" data-nav-group="chibo">
+					<div class="nav-group-head">
+						<a class="nav-link" href="/chibo/" data-parent-link="chibo">
+							<svg class="nav-link-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+								<path d="M3 10.5L12 3l9 7.5" />
+								<path d="M6 9.5V21h12V9.5" />
+								<path d="M10 21v-5h4v5" />
+							</svg>
+							<span class="nav-link-text">Chi bộ</span>
+						</a>
+						<button
+							type="button"
+							class="nav-group-toggle"
+							data-nav-toggle="chibo"
+							aria-label="Ẩn/hiện mục con Chi bộ"
+							aria-expanded="true"
+						>
+							<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+								<path d="M6 9l6 6 6-6" />
+							</svg>
+						</button>
+					</div>
+					<div class="nav-sublist">
+						<a class="nav-sublink" href="/chibo/" data-nav-sub="chibo-overview">Theo dõi Tổng quan Chi bộ</a>
+						<a class="nav-sublink" href="/chibo/them-moi/" data-nav-sub="chibo-add">Thêm Chi bộ</a>
+						<a class="nav-sublink" href="/chibo/du-lieu/" data-nav-sub="chibo-data">Xem/xuất dữ liệu Chi bộ</a>
+					</div>
+				</div>
+				<div class="nav-group" data-nav-group="dangvien">
+					<div class="nav-group-head">
+						<a class="nav-link" href="/dangvien/" data-parent-link="dangvien">
+							<svg class="nav-link-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+								<circle cx="9" cy="8" r="3.2" />
+								<path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+								<circle cx="17.2" cy="9.2" r="2.4" />
+								<path d="M14.6 19a4 4 0 0 1 6 0" />
+							</svg>
+							<span class="nav-link-text">Đảng viên</span>
+						</a>
+						<button
+							type="button"
+							class="nav-group-toggle"
+							data-nav-toggle="dangvien"
+							aria-label="Ẩn/hiện mục con Đảng viên"
+							aria-expanded="true"
+						>
+							<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+								<path d="M6 9l6 6 6-6" />
+							</svg>
+						</button>
+					</div>
+					<div class="nav-sublist">
+						<a class="nav-sublink" href="/dangvien/" data-nav-sub="dangvien-overview">Theo dõi Tổng quan</a>
+						<a class="nav-sublink" href="/dangvien/theo-doi-bien-dong/" data-nav-sub="dangvien-structure">Theo dõi Biến động &amp; Cơ cấu</a>
+						<a class="nav-sublink" href="/dangvien/them-moi/" data-nav-sub="dangvien-add">Thêm Đảng viên</a>
+						<a class="nav-sublink" href="/dangvien/du-lieu/" data-nav-sub="dangvien-data">Xem/xuất dữ liệu Đảng viên</a>
+					</div>
+				</div>
+				<a class="nav-link" href="/huyhieu/">
+					<svg class="nav-link-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<circle cx="12" cy="8" r="4.5" />
+						<path d="M9.5 12.2L8 21l4-2.3 4 2.3-1.5-8.8" />
+					</svg>
+					<span class="nav-link-text">Huy hiệu Đảng</span>
+				</a>
+				{% endif %}
+
+				{% block sidebar_links %}{% endblock %}
+			</nav>
+
+			<button class="sidebar-hide-btn" id="sidebar-hide-btn" type="button">
+				<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+					<path d="M15 6l-6 6 6 6" />
+				</svg>
+				<span>Ẩn menu</span>
+			</button>
+		</aside>
+		<button class="sidebar-open-trigger" id="sidebar-open-btn" type="button" aria-label="Hiện menu">
+			<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+				<path d="M9 6l6 6-6 6" />
+			</svg>
+		</button>
+		{% endif %}
+
+		<div class="content-wrap">
+			<main class="page-content">
+				{% if user.is_authenticated %}
+				<div class="mobile-menu-row">
+					<button class="btn mobile-only" id="menu-toggle" type="button">Mở menu</button>
+				</div>
+				{% endif %}
+				{% if messages %}
+				<div class="flash-list">
+					{% for message in messages %}
+					<div class="flash-item flash-{{ message.tags|default:'info' }}" data-flash-item>
+						<button type="button" class="flash-dismiss" data-flash-dismiss aria-label="Đóng thông báo">&times;</button>
+						<div>{{ message }}</div>
+					</div>
+					{% endfor %}
+				</div>
+				{% endif %}
+				{% block content %}
+				<h2>Chào mừng</h2>
+				<p>Giao diện nền đã sẵn sàng. Hãy tạo nội dung cho từng màn hình bằng cách kế thừa mẫu này.</p>
+				{% endblock %}
+			</main>
+		</div>
+	</div>
+
+	<script>
+		(function () {
+			const addRequiredMarkers = function () {
+				document.querySelectorAll(".form-field label[for]").forEach(function (label) {
+					const fieldId = label.getAttribute("for");
+					if (!fieldId) {
+						return;
+					}
+
+					const field = document.getElementById(fieldId);
+					if (!field) {
+						return;
+					}
+
+					const isRequired = field.required || field.getAttribute("aria-required") === "true";
+					if (!isRequired || label.querySelector(".required-star")) {
+						return;
+					}
+
+					const star = document.createElement("span");
+					star.className = "required-star";
+					star.textContent = "*";
+					star.setAttribute("aria-hidden", "true");
+					label.appendChild(star);
+				});
+			};
+
+			addRequiredMarkers();
+
+			// Set active nav link based on current URL
+			const currentPath = window.location.pathname;
+			const navLinks = document.querySelectorAll(".nav-link");
+			const navSubLinks = document.querySelectorAll(".nav-sublink");
+			navLinks.forEach(link => {
+				const href = link.getAttribute("href");
+				if (href === currentPath || (href === "/" && currentPath === "/") || 
+				    (href !== "/" && currentPath.startsWith(href))) {
+					link.classList.add("active");
+				}
+			});
+
+			navSubLinks.forEach(function (link) {
+				const href = link.getAttribute("href");
+				if (href === currentPath) {
+					link.classList.add("active");
+				}
+			});
+
+			if (
+				currentPath.startsWith("/dangvien/") &&
+				currentPath !== "/dangvien/" &&
+				!document.querySelector('.nav-sublink.active')
+			) {
+				const overviewLink = document.querySelector('[data-nav-sub="dangvien-overview"]');
+				if (overviewLink) {
+					overviewLink.classList.add("active");
+				}
+			}
+
+			if (
+				currentPath.startsWith("/chibo/") &&
+				currentPath !== "/chibo/" &&
+				!document.querySelector('[data-nav-sub^="chibo-"].active')
+			) {
+				const chiboOverviewLink = document.querySelector('[data-nav-sub="chibo-overview"]');
+				if (chiboOverviewLink) {
+					chiboOverviewLink.classList.add("active");
+				}
+			}
+
+			const dangvienGroup = document.querySelector('[data-nav-group="dangvien"]');
+			const dangvienToggle = document.querySelector('[data-nav-toggle="dangvien"]');
+			const dangvienSubmenuKey = "qldv-dangvien-submenu-collapsed";
+			const chiboGroup = document.querySelector('[data-nav-group="chibo"]');
+			const chiboToggle = document.querySelector('[data-nav-toggle="chibo"]');
+			const chiboSubmenuKey = "qldv-chibo-submenu-collapsed";
+
+			const setDangvienSubmenuCollapsed = function (collapsed) {
+				if (!dangvienGroup || !dangvienToggle) {
+					return;
+				}
+
+				dangvienGroup.classList.toggle("is-collapsed", collapsed);
+				dangvienToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+			};
+
+			if (dangvienGroup && dangvienToggle) {
+				const hasDangvienActivePage = currentPath.startsWith("/dangvien/");
+				const savedCollapsed = localStorage.getItem(dangvienSubmenuKey) === "1";
+				setDangvienSubmenuCollapsed(hasDangvienActivePage ? false : savedCollapsed);
+
+				dangvienToggle.addEventListener("click", function () {
+					const collapsed = !dangvienGroup.classList.contains("is-collapsed");
+					setDangvienSubmenuCollapsed(collapsed);
+					localStorage.setItem(dangvienSubmenuKey, collapsed ? "1" : "0");
+				});
+			}
+
+			const setChiboSubmenuCollapsed = function (collapsed) {
+				if (!chiboGroup || !chiboToggle) {
+					return;
+				}
+
+				chiboGroup.classList.toggle("is-collapsed", collapsed);
+				chiboToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+			};
+
+			if (chiboGroup && chiboToggle) {
+				const hasChiboActivePage = currentPath.startsWith("/chibo/");
+				const savedCollapsed = localStorage.getItem(chiboSubmenuKey) === "1";
+				setChiboSubmenuCollapsed(hasChiboActivePage ? false : savedCollapsed);
+
+				chiboToggle.addEventListener("click", function () {
+					const collapsed = !chiboGroup.classList.contains("is-collapsed");
+					setChiboSubmenuCollapsed(collapsed);
+					localStorage.setItem(chiboSubmenuKey, collapsed ? "1" : "0");
+				});
+			}
+
+			const appShell = document.querySelector(".app-shell");
+			const sidebar = document.getElementById("app-sidebar");
+			const menuToggle = document.getElementById("menu-toggle");
+			const sidebarHideBtn = document.getElementById("sidebar-hide-btn");
+			const sidebarOpenBtn = document.getElementById("sidebar-open-btn");
+			const storageKey = "qldv-sidebar-collapsed";
+			const flashDismissButtons = document.querySelectorAll("[data-flash-dismiss]");
+            const flashItems = document.querySelectorAll("[data-flash-item]");
+
+			const isDesktop = function () {
+				return window.innerWidth > 980;
+			};
+
+			flashDismissButtons.forEach(function (button) {
+				button.addEventListener("click", function () {
+					const flashItem = button.closest("[data-flash-item]");
+					if (flashItem) {
+						flashItem.classList.add("is-hiding");
+						window.setTimeout(function () {
+							flashItem.remove();
+						}, 280);
+					}
+				});
+			});
+
+			flashItems.forEach(function (item) {
+				window.setTimeout(function () {
+					if (!item.isConnected) {
+						return;
+					}
+					item.classList.add("is-hiding");
+					window.setTimeout(function () {
+						item.remove();
+					}, 280);
+				}, 7000);
+			});
+
+			const setSidebarCollapsed = function (collapsed) {
+				if (!appShell) {
+					return;
+				}
+
+				appShell.classList.toggle("sidebar-collapsed", collapsed && isDesktop());
+			};
+
+			if (menuToggle && sidebar) {
+				menuToggle.addEventListener("click", function () {
+					if (isDesktop() && appShell && appShell.classList.contains("sidebar-collapsed")) {
+						setSidebarCollapsed(false);
+						localStorage.setItem(storageKey, "0");
+						return;
+					}
+
+					sidebar.classList.toggle("show");
+				});
+
+				if (sidebarHideBtn) {
+					sidebarHideBtn.addEventListener("click", function () {
+						if (!isDesktop()) {
+							return;
+						}
+
+						setSidebarCollapsed(true);
+						localStorage.setItem(storageKey, "1");
+					});
+				}
+
+				if (sidebarOpenBtn) {
+					sidebarOpenBtn.addEventListener("click", function () {
+						setSidebarCollapsed(false);
+						localStorage.setItem(storageKey, "0");
+					});
+				}
+
+				setSidebarCollapsed(localStorage.getItem(storageKey) === "1");
+
+				window.addEventListener("resize", function () {
+					if (window.innerWidth > 980) {
+						sidebar.classList.remove("show");
+						setSidebarCollapsed(localStorage.getItem(storageKey) === "1");
+					} else if (appShell) {
+						appShell.classList.remove("sidebar-collapsed");
+					}
+				});
+			}
+		})();
+	</script>
+	{% block extra_js %}{% endblock %}
+</body>
+</html>

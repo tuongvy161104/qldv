@@ -1,0 +1,886 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Theo dõi tổng quan Đảng viên{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.page-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head p {
+		margin: 0.35rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.head-actions {
+		display: inline-flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+
+	.btn-danger {
+		border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
+		background: color-mix(in oklab, var(--destructive) 75%, #9f1239 25%);
+		color: #fff;
+		padding: 0.62rem 1rem;
+		border-radius: calc(var(--radius) - 2px);
+		font-weight: 600;
+	}
+
+	.btn-danger:hover {
+		filter: brightness(0.96);
+	}
+
+	.stats {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.7rem;
+	}
+
+	.stat {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.85rem;
+		background: color-mix(in oklab, var(--card) 95%, white 5%);
+	}
+
+	.stat span {
+		color: var(--muted-foreground);
+		font-size: 0.84rem;
+	}
+
+	.stat b {
+		font-size: 2.15rem;
+		display: block;
+		margin-top: 0.22rem;
+		line-height: 1.1;
+	}
+
+	.stat small {
+		display: block;
+		margin-top: 0.2rem;
+		font-size: 0.82rem;
+		color: #6b7280;
+	}
+
+	.charts {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.9rem;
+	}
+
+	.charts-three {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.9rem;
+	}
+
+	.age-sections {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.9rem;
+	}
+
+	.chart-card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+		background: color-mix(in oklab, var(--card) 96%, white 4%);
+		transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+		cursor: pointer;
+	}
+
+	.chart-card:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+	}
+
+	.chart-card h3 {
+		margin: 0;
+		font-size: 1.05rem;
+		color: #0f172a;
+	}
+
+	.chart-legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		margin-top: 0.85rem;
+	}
+
+	.legend-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.92rem;
+		color: #334155;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.legend-item.is-selected {
+		color: #7f1d1d;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.legend-dot {
+		width: 13px;
+		height: 13px;
+		border-radius: 4px;
+		display: inline-block;
+	}
+
+	.chart-donut-wrap {
+		display: flex;
+		justify-content: center;
+		padding-top: 0.7rem;
+	}
+
+	.chart-donut {
+		width: 230px;
+		height: 230px;
+		border-radius: 50%;
+		position: relative;
+		transition: transform 0.2s ease, filter 0.2s ease;
+	}
+
+	.chart-card:hover .chart-donut {
+		transform: scale(1.03);
+		filter: saturate(1.08);
+	}
+
+	.chart-donut::after {
+		content: "";
+		position: absolute;
+		inset: 34%;
+		border-radius: 50%;
+		background: #ffffff;
+		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border) 75%, transparent);
+	}
+
+	.age-card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+		background: color-mix(in oklab, var(--card) 96%, white 4%);
+		transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+		cursor: pointer;
+	}
+
+	.age-card:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+	}
+
+	.age-card h3 {
+		margin: 0;
+		font-size: 1.05rem;
+		color: #0f172a;
+	}
+
+	.age-legend {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		margin-top: 0.8rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	.age-chart {
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		gap: 0.9rem;
+		align-items: end;
+		height: 270px;
+		margin-top: 0.9rem;
+		padding: 1rem 0.4rem 0.2rem;
+		border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+	}
+
+	.age-col {
+		display: grid;
+		gap: 0.55rem;
+		justify-items: center;
+	}
+
+	.age-bar-wrap {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		align-items: center;
+		gap: 0.4rem;
+		height: 220px;
+		width: 100%;
+		position: relative;
+		cursor: pointer;
+	}
+
+	.age-bar {
+		width: 100%;
+		max-width: 92px;
+		background: linear-gradient(180deg, #be123c 0%, #9f1239 100%);
+		border-radius: 8px 8px 6px 6px;
+		min-height: 3px;
+		transition: transform 0.2s ease, filter 0.2s ease;
+	}
+
+	.party-age-bar {
+		background: linear-gradient(180deg, #b45309 0%, #9a3412 100%);
+	}
+
+	.age-card:hover .age-bar {
+		transform: translateY(-2px);
+		filter: saturate(1.08);
+	}
+
+	.chart-tooltip {
+		position: fixed;
+		top: 0;
+		left: 0;
+		z-index: 2000;
+		pointer-events: none;
+		opacity: 0;
+		transform: translate(-9999px, -9999px);
+		transition: opacity 0.12s ease;
+		background: rgba(30, 41, 59, 0.96);
+		color: #f8fafc;
+		border-radius: 10px;
+		padding: 0.5rem 0.65rem;
+		min-width: 130px;
+		box-shadow: 0 12px 24px rgba(15, 23, 42, 0.28);
+	}
+
+	.chart-tooltip.is-visible {
+		opacity: 1;
+	}
+
+	.chart-tooltip-title {
+		font-size: 0.86rem;
+		font-weight: 700;
+		line-height: 1.25;
+	}
+
+	.chart-tooltip-row {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.38rem;
+		margin-top: 0.28rem;
+		font-size: 0.85rem;
+		font-weight: 600;
+	}
+
+	.chart-tooltip-dot {
+		width: 10px;
+		height: 10px;
+		border: 2px solid #bfdbfe;
+		background: #bfdbfe;
+		display: inline-block;
+		box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.18);
+	}
+
+	.charts-interactive.is-focused .viz-card.is-active {
+		opacity: 1;
+		box-shadow: 0 0 0 2px color-mix(in oklab, #9f1239 34%, transparent), 0 12px 24px rgba(15, 23, 42, 0.14);
+	}
+
+	.age-value {
+		font-size: 0.88rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	.age-label {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #475569;
+		text-align: center;
+	}
+
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: #fff;
+		box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+	}
+
+	.actions-cell {
+		display: flex;
+		gap: 0.45rem;
+		align-items: center;
+	}
+
+	.btn-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 3px);
+		padding: 0.32rem 0.55rem;
+		background: #ffffff;
+		color: var(--foreground);
+		cursor: pointer;
+		font-size: 0.88rem;
+		font-weight: 500;
+		transition: transform 0.16s ease, background-color 0.16s ease;
+	}
+
+	.btn-action:hover {
+		background: var(--muted);
+		transform: translateY(-1px);
+	}
+
+	.btn-action.btn-danger {
+		color: #9f1239;
+		border-color: color-mix(in oklab, #9f1239 40%, var(--border));
+	}
+
+	.membership-warning {
+		display: inline-block;
+		margin-top: 0.35rem;
+		padding: 0.22rem 0.45rem;
+		border-radius: 999px;
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: #b91c1c;
+		background: #fee2e2;
+		border: 1px solid #fecaca;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 1100px;
+	}
+
+	th,
+	td {
+		padding: 0.74rem;
+		text-align: left;
+		border-bottom: 1px solid var(--border);
+	}
+
+	tbody tr:hover {
+		background: color-mix(in oklab, var(--muted) 45%, white 55%);
+	}
+
+	thead {
+		background: linear-gradient(180deg, color-mix(in oklab, var(--muted) 80%, white 20%), color-mix(in oklab, var(--muted) 65%, white 35%));
+	}
+
+	thead th {
+		font-size: 0.84rem;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: #334155;
+	}
+
+	@media (max-width: 1300px) {
+		.stats {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (max-width: 900px) {
+		.stats {
+			grid-template-columns: 1fr;
+		}
+
+		.charts {
+			grid-template-columns: 1fr;
+		}
+
+		.charts-three {
+			grid-template-columns: 1fr;
+		}
+
+		.age-sections {
+			grid-template-columns: 1fr;
+		}
+
+		.age-chart {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			height: auto;
+		}
+
+		.age-bar-wrap {
+			height: 150px;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page charts-interactive" data-charts-root>
+	<section class="page-head">
+		<div>
+			<h1>Theo dõi Tổng quan Hồ sơ Đảng viên</h1>
+			<p>Theo dõi nhanh số lượng, trạng thái và danh sách hồ sơ Đảng viên.</p>
+		</div>
+		<div class="head-actions">
+			<a href="{% url 'dangvien_structure' %}" class="btn">Theo dõi Biến động &amp; Cơ cấu</a>
+			<a href="{% url 'dangvien_data' %}" class="btn">Xem/xuất dữ liệu</a>
+			<a href="{% url 'dangvien_add' %}" class="btn btn-danger">Thêm Đảng viên</a>
+		</div>
+	</section>
+
+	<section class="stats">
+		<div class="stat">
+			<span>Tổng Đảng viên</span>
+			<b>{{ total_display }}</b>
+		</div>
+		<div class="stat">
+			<span>Đang sinh hoạt</span>
+			<b>{{ active_members }}</b>
+		</div>
+		<div class="stat">
+			<span>Tuổi trung bình</span>
+			<b>{{ average_age_display }}</b>
+		</div>
+		<div class="stat">
+			<span>Tuổi Đảng TB</span>
+			<b>{{ average_party_age_display }}</b>
+		</div>
+	</section>
+
+	<section class="charts">
+		<article class="chart-card viz-card" data-viz-card data-chart-id="gender" tabindex="0" role="button" aria-label="Biểu đồ phân bố theo giới tính">
+			<h3>Phân bố theo giới tính</h3>
+			<div class="chart-legend" data-legend>
+				{% for item in gender_segments %}
+				<div class="legend-item" data-filter-key="{{ item.key }}" data-tip-title="Phân bố theo giới tính" data-tip-value="{{ item.label }} {{ item.percent_text }}% ({{ item.count }} người)" data-tip-color="{{ item.color }}"><span class="legend-dot" style="background:{{ item.color }};"></span>{{ item.label }} {{ item.percent_text }}%</div>
+				{% endfor %}
+			</div>
+			<div class="chart-donut-wrap">
+				<div class="chart-donut" data-donut data-tip-title="Phân bố theo giới tính" data-tip-value="Tổng {{ total_display }} Đảng viên" data-tip-color="#9f1239" style="background: {{ gender_chart_style }};"></div>
+			</div>
+		</article>
+
+		<article class="chart-card viz-card" data-viz-card data-chart-id="membership" tabindex="0" role="button" aria-label="Biểu đồ diện Đảng viên">
+			<h3>Diện Đảng viên</h3>
+			<div class="chart-legend" data-legend>
+				{% for item in membership_segments %}
+				<div class="legend-item" data-filter-key="{{ item.key }}" data-tip-title="Diện Đảng viên" data-tip-value="{{ item.label }} {{ item.percent_text }}% ({{ item.count }} người)" data-tip-color="{{ item.color }}"><span class="legend-dot" style="background:{{ item.color }};"></span>{{ item.label }} {{ item.percent_text }}%</div>
+				{% endfor %}
+			</div>
+			<div class="chart-donut-wrap">
+				<div class="chart-donut" data-donut data-tip-title="Diện Đảng viên" data-tip-value="Tổng {{ total_display }} Đảng viên" data-tip-color="#7f1d1d" style="background: {{ membership_chart_style }};"></div>
+			</div>
+		</article>
+	</section>
+
+	<section class="charts-three">
+		<article class="chart-card viz-card" data-viz-card data-chart-id="nghe" tabindex="0" role="button" aria-label="Biểu đồ nghề nghiệp">
+			<h3>Nghề nghiệp</h3>
+			<div class="chart-legend" data-legend>
+				{% for item in nghe_nghiep_segments %}
+				<div class="legend-item" data-filter-key="{{ item.key }}" data-tip-title="Nghề nghiệp" data-tip-value="{{ item.label }} {{ item.percent_text }}% ({{ item.count }} người)" data-tip-color="{{ item.color }}"><span class="legend-dot" style="background:{{ item.color }};"></span>{{ item.label }} {{ item.percent_text }}%</div>
+				{% endfor %}
+			</div>
+			<div class="chart-donut-wrap">
+				<div class="chart-donut" data-donut data-tip-title="Nghề nghiệp" data-tip-value="Tổng {{ total_display }} Đảng viên" data-tip-color="#9f1239" style="background: {{ nghe_nghiep_chart_style }};"></div>
+			</div>
+		</article>
+
+		<article class="chart-card viz-card" data-viz-card data-chart-id="lyluan" tabindex="0" role="button" aria-label="Biểu đồ lý luận chính trị">
+			<h3>Lý luận chính trị</h3>
+			<div class="chart-legend" data-legend>
+				{% for item in ly_luan_segments %}
+				<div class="legend-item" data-filter-key="{{ item.key }}" data-tip-title="Lý luận chính trị" data-tip-value="{{ item.label }} {{ item.percent_text }}% ({{ item.count }} người)" data-tip-color="{{ item.color }}"><span class="legend-dot" style="background:{{ item.color }};"></span>{{ item.label }} {{ item.percent_text }}%</div>
+				{% endfor %}
+			</div>
+			<div class="chart-donut-wrap">
+				<div class="chart-donut" data-donut data-tip-title="Lý luận chính trị" data-tip-value="Tổng {{ total_display }} Đảng viên" data-tip-color="#7f1d1d" style="background: {{ ly_luan_chart_style }};"></div>
+			</div>
+		</article>
+
+		<article class="chart-card viz-card" data-viz-card data-chart-id="tinhtrang" tabindex="0" role="button" aria-label="Biểu đồ tình trạng sinh hoạt">
+			<h3>Tình trạng sinh hoạt</h3>
+			<div class="chart-legend" data-legend>
+				{% for item in tinh_trang_segments %}
+				<div class="legend-item" data-filter-key="{{ item.key }}" data-tip-title="Tình trạng sinh hoạt" data-tip-value="{{ item.label }} {{ item.percent_text }}% ({{ item.count }} người)" data-tip-color="{{ item.color }}"><span class="legend-dot" style="background:{{ item.color }};"></span>{{ item.label }} {{ item.percent_text }}%</div>
+				{% endfor %}
+			</div>
+			<div class="chart-donut-wrap">
+				<div class="chart-donut" data-donut data-tip-title="Tình trạng sinh hoạt" data-tip-value="Tổng {{ total_display }} Đảng viên" data-tip-color="#9f1239" style="background: {{ tinh_trang_chart_style }};"></div>
+			</div>
+		</article>
+	</section>
+
+	<section class="age-sections">
+		<article class="age-card viz-card" data-viz-card tabindex="0" role="button" aria-label="Biểu đồ phân bố độ tuổi Đảng viên">
+			<h3>Phân bố độ tuổi Đảng viên (nhóm 10 năm)</h3>
+			<div class="age-legend">
+				<span class="legend-dot" style="background:#be123c;"></span>
+				Số lượng Đảng viên
+			</div>
+			<div class="age-chart" data-age-chart="member-age">
+				{% for item in age_distribution %}
+				<div class="age-col">
+					<div class="age-bar-wrap" data-filter-key="{{ item.key }}" data-tip-title="{{ item.label }}" data-tip-value="{{ item.count }} người" data-tip-color="#be123c">
+						<div class="age-value">{{ item.count }}</div>
+						<div class="age-bar" style="height: {{ item.height_px }}px;"></div>
+					</div>
+					<div class="age-label">{{ item.label }}</div>
+				</div>
+				{% endfor %}
+			</div>
+		</article>
+
+		<article class="age-card viz-card" data-viz-card tabindex="0" role="button" aria-label="Biểu đồ phân bổ tuổi Đảng">
+			<h3>Phân bổ tuổi Đảng (thâm niên)</h3>
+			<div class="age-legend">
+				<span class="legend-dot" style="background:#b45309;"></span>
+				Số Đảng viên
+			</div>
+			<div class="age-chart" data-age-chart="party-age">
+				{% for item in party_age_distribution %}
+				<div class="age-col">
+					<div class="age-bar-wrap" data-filter-key="{{ item.key }}" data-tip-title="{{ item.label }}" data-tip-value="{{ item.count }} Đảng viên" data-tip-color="#b45309">
+						<div class="age-value">{{ item.count }}</div>
+						<div class="age-bar party-age-bar" style="height: {{ item.height_px }}px;"></div>
+					</div>
+					<div class="age-label">{{ item.label }}</div>
+				</div>
+				{% endfor %}
+			</div>
+		</article>
+	</section>
+
+</div>
+{{ overview_charts_by_key|json_script:"overview-charts-map" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	document.addEventListener("DOMContentLoaded", function () {
+		var root = document.querySelector("[data-charts-root]");
+		if (!root) {
+			return;
+		}
+
+		var cards = Array.from(root.querySelectorAll("[data-viz-card]"));
+		if (!cards.length) {
+			return;
+		}
+
+		var tooltip = document.createElement("div");
+		tooltip.className = "chart-tooltip";
+		tooltip.innerHTML = '<div class="chart-tooltip-title"></div><div class="chart-tooltip-row"><span class="chart-tooltip-dot"></span><span class="chart-tooltip-value"></span></div>';
+		document.body.appendChild(tooltip);
+
+		var tooltipTitle = tooltip.querySelector(".chart-tooltip-title");
+		var tooltipValue = tooltip.querySelector(".chart-tooltip-value");
+		var tooltipDot = tooltip.querySelector(".chart-tooltip-dot");
+
+		var chartsMapEl = document.getElementById("overview-charts-map");
+		var overviewMap = chartsMapEl ? JSON.parse(chartsMapEl.textContent) : {};
+		var currentFilterKey = "__default__";
+
+		var segmentFieldByChart = {
+			gender: "gender_segments",
+			membership: "membership_segments",
+			nghe: "nghe_nghiep_segments",
+			lyluan: "ly_luan_segments",
+			tinhtrang: "tinh_trang_segments"
+		};
+
+		var styleFieldByChart = {
+			gender: "gender_chart_style",
+			membership: "membership_chart_style",
+			nghe: "nghe_nghiep_chart_style",
+			lyluan: "ly_luan_chart_style",
+			tinhtrang: "tinh_trang_chart_style"
+		};
+
+		var memberAgeBars = Array.from(root.querySelectorAll('[data-age-chart="member-age"] .age-col'));
+		var partyAgeBars = Array.from(root.querySelectorAll('[data-age-chart="party-age"] .age-col'));
+
+		function getPayload(filterKey) {
+			return overviewMap[filterKey] || overviewMap.__default__;
+		}
+
+		function buildLegendItem(segment, chartTitle) {
+			var item = document.createElement("div");
+			item.className = "legend-item";
+			item.setAttribute("data-filter-key", segment.key);
+			item.setAttribute("data-tip-title", chartTitle);
+			item.setAttribute(
+				"data-tip-value",
+				segment.label + " " + segment.percent_text + "% (" + segment.count + " người)"
+			);
+			item.setAttribute("data-tip-color", segment.color);
+
+			var dot = document.createElement("span");
+			dot.className = "legend-dot";
+			dot.style.background = segment.color;
+			item.appendChild(dot);
+
+			item.appendChild(document.createTextNode(segment.label + " " + segment.percent_text + "%"));
+			return item;
+		}
+
+		function renderChartCard(card, payload) {
+			var chartId = card.getAttribute("data-chart-id");
+			if (!chartId) {
+				return;
+			}
+
+			var segmentField = segmentFieldByChart[chartId];
+			var styleField = styleFieldByChart[chartId];
+			if (!segmentField || !styleField) {
+				return;
+			}
+
+			var segments = payload[segmentField] || [];
+			var legendEl = card.querySelector("[data-legend]");
+			if (legendEl) {
+				legendEl.innerHTML = "";
+				var chartTitle = (card.querySelector("h3") || {}).textContent || "Biểu đồ";
+				segments.forEach(function (segment) {
+					legendEl.appendChild(buildLegendItem(segment, chartTitle));
+				});
+			}
+
+			card.setAttribute("data-primary-filter", segments.length ? segments[0].key : "__default__");
+
+			var donutEl = card.querySelector("[data-donut]");
+			if (donutEl) {
+				donutEl.style.background = payload[styleField] || "conic-gradient(#cbd5e1 0 100%)";
+				var chartTitle = (card.querySelector("h3") || {}).textContent || "Biểu đồ";
+				donutEl.setAttribute("data-tip-title", chartTitle);
+				donutEl.setAttribute("data-tip-value", "Tổng " + (payload.total || 0) + " Đảng viên");
+				var firstColor = segments.length ? segments[0].color : "#be123c";
+				donutEl.setAttribute("data-tip-color", firstColor);
+				donutEl.setAttribute("data-segment-keys", segments.map(function (segment) {
+					return segment.key;
+				}).join(","));
+				donutEl.setAttribute("data-segment-cursor", "0");
+			}
+		}
+
+		function getNextDonutFilterKey(donutEl) {
+			var keysRaw = donutEl.getAttribute("data-segment-keys") || "";
+			var keys = keysRaw.split(",").map(function (item) {
+				return item.trim();
+			}).filter(Boolean);
+			if (!keys.length) {
+				return "__default__";
+			}
+
+			var cursor = parseInt(donutEl.getAttribute("data-segment-cursor") || "-1", 10);
+			if (Number.isNaN(cursor)) {
+				cursor = -1;
+			}
+
+			var nextCursor = (cursor + 1) % keys.length;
+			donutEl.setAttribute("data-segment-cursor", String(nextCursor));
+			return keys[nextCursor];
+		}
+
+		function renderDistribution(columns, distribution, color, emptyKeyPrefix, unitLabel) {
+			if (!columns.length || !distribution.length) {
+				return;
+			}
+
+			columns.forEach(function (col, index) {
+				var item = distribution[index];
+				if (!item) {
+					return;
+				}
+
+				var wrapEl = col.querySelector(".age-bar-wrap");
+				var valueEl = col.querySelector(".age-value");
+				var barEl = col.querySelector(".age-bar");
+
+				if (wrapEl) {
+					wrapEl.setAttribute("data-filter-key", item.key || (emptyKeyPrefix + index));
+					wrapEl.setAttribute("data-tip-title", item.label);
+					wrapEl.setAttribute("data-tip-value", item.count + " " + unitLabel);
+					wrapEl.setAttribute("data-tip-color", color);
+				}
+
+				if (valueEl) {
+					valueEl.textContent = item.count;
+				}
+
+				if (barEl) {
+					barEl.style.height = item.height_px + "px";
+				}
+			});
+		}
+
+		function renderAgeChart(payload) {
+			renderDistribution(memberAgeBars, payload.age_distribution || [], "#be123c", "age_", "người");
+			renderDistribution(partyAgeBars, payload.party_age_distribution || [], "#b45309", "party_age_", "Đảng viên");
+		}
+
+		function syncSelectedFilter() {
+			var selectable = root.querySelectorAll("[data-filter-key]");
+			selectable.forEach(function (el) {
+				var matched = currentFilterKey !== "__default__" && el.getAttribute("data-filter-key") === currentFilterKey;
+				el.classList.toggle("is-selected", matched);
+			});
+		}
+
+		function applyFilter(filterKey) {
+			currentFilterKey = filterKey;
+			var payload = getPayload(filterKey);
+			if (!payload) {
+				return;
+			}
+
+			cards.forEach(function (card) {
+				renderChartCard(card, payload);
+			});
+			renderAgeChart(payload);
+			syncSelectedFilter();
+		}
+
+		function showTooltip(target, event) {
+			var title = target.getAttribute("data-tip-title") || "";
+			var value = target.getAttribute("data-tip-value") || "";
+			var color = target.getAttribute("data-tip-color") || "#be123c";
+
+			tooltipTitle.textContent = title;
+			tooltipValue.textContent = value;
+			tooltipDot.style.borderColor = color;
+			tooltipDot.style.backgroundColor = color;
+			tooltip.classList.add("is-visible");
+
+			var offsetX = 14;
+			var offsetY = -10;
+			tooltip.style.transform = "translate(" + (event.clientX + offsetX) + "px," + (event.clientY + offsetY) + "px)";
+		}
+
+		function hideTooltip() {
+			tooltip.classList.remove("is-visible");
+			tooltip.style.transform = "translate(-9999px, -9999px)";
+		}
+
+		function clearFocus() {
+			root.classList.remove("is-focused");
+			cards.forEach(function (card) {
+				card.classList.remove("is-active");
+			});
+		}
+
+		function setActive(card) {
+			var alreadyActive = card.classList.contains("is-active");
+			if (alreadyActive) {
+				clearFocus();
+				return;
+			}
+
+			root.classList.add("is-focused");
+			cards.forEach(function (item) {
+				item.classList.toggle("is-active", item === card);
+			});
+		}
+
+		cards.forEach(function (card) {
+			card.addEventListener("click", function () {
+				setActive(card);
+			});
+
+			card.addEventListener("keydown", function (event) {
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					setActive(card);
+				}
+			});
+		});
+
+		root.addEventListener("mouseover", function (event) {
+			var target = event.target.closest("[data-tip-title]");
+			if (!target || !root.contains(target)) {
+				return;
+			}
+			showTooltip(target, event);
+		});
+
+		root.addEventListener("mousemove", function (event) {
+			var target = event.target.closest("[data-tip-title]");
+			if (!target || !root.contains(target)) {
+				return;
+			}
+			showTooltip(target, event);
+		});
+
+		root.addEventListener("mouseout", function (event) {
+			var target = event.target.closest("[data-tip-title]");
+			if (!target || !root.contains(target)) {
+				return;
+			}
+			var nextTarget = event.relatedTarget ? event.relatedTarget.closest("[data-tip-title]") : null;
+			if (target !== nextTarget) {
+				hideTooltip();
+			}
+		});
+
+		root.addEventListener("click", function (event) {
+			var donutTarget = event.target.closest("[data-donut]");
+			if (donutTarget && root.contains(donutTarget)) {
+				event.stopPropagation();
+				var donutCard = donutTarget.closest("[data-viz-card]");
+				if (donutCard) {
+					setActive(donutCard);
+				}
+
+				var nextKey = getNextDonutFilterKey(donutTarget);
+				if (currentFilterKey === nextKey) {
+					applyFilter("__default__");
+					return;
+				}
+				applyFilter(nextKey);
+				return;
+			}
+
+			var filterTarget = event.target.closest("[data-filter-key]");
+			if (filterTarget && root.contains(filterTarget)) {
+				event.stopPropagation();
+				var key = filterTarget.getAttribute("data-filter-key") || "__default__";
+				if (currentFilterKey === key) {
+					applyFilter("__default__");
+					return;
+				}
+				applyFilter(key);
+				return;
+			}
+
+			var card = event.target.closest("[data-viz-card]");
+			if (card && root.contains(card)) {
+				setActive(card);
+				var primaryFilter = card.getAttribute("data-primary-filter") || "__default__";
+				if (currentFilterKey === primaryFilter) {
+					applyFilter("__default__");
+				} else {
+					applyFilter(primaryFilter);
+				}
+			}
+		});
+
+		document.addEventListener("click", function (event) {
+			if (!root.contains(event.target)) {
+				clearFocus();
+				hideTooltip();
+				applyFilter("__default__");
+			}
+		});
+
+		applyFilter("__default__");
+	});
+</script>
+{% endblock %}

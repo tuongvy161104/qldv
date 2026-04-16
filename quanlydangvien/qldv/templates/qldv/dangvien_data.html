@@ -1,0 +1,606 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Xem/xuất dữ liệu Đảng viên{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.page-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head p {
+		margin: 0.35rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.head-actions {
+		display: inline-flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+
+	.btn-danger {
+		border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
+		background: color-mix(in oklab, var(--destructive) 75%, #9f1239 25%);
+		color: #fff;
+		padding: 0.62rem 1rem;
+		border-radius: calc(var(--radius) - 2px);
+		font-weight: 600;
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.95rem;
+		background: #fff;
+	}
+
+	.filter-toolbar {
+		display: flex;
+		gap: 0.55rem;
+		align-items: center;
+		flex-wrap: nowrap;
+	}
+
+	.filter-toolbar > * {
+		flex: 0 0 auto;
+	}
+
+	.filter-toolbar input,
+	.filter-toolbar select {
+		height: 2rem;
+		padding: 0.25rem 0.55rem;
+		font-size: 0.86rem;
+	}
+
+	.filter-toolbar .control-keyword {
+		width: 205px;
+		max-width: 100%;
+	}
+
+	.filter-toolbar .control-small {
+		width: 118px;
+	}
+
+	.filter-toolbar .control-medium {
+		width: 146px;
+	}
+
+	.filter-btn {
+		min-width: 108px;
+		height: 2rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.filter-btn-primary {
+		border: 1px solid #dc2626;
+		background: #dc2626;
+		color: #fff;
+		font-weight: 600;
+	}
+
+	.filter-actions {
+		display: inline-flex;
+		gap: 0.4rem;
+		align-items: center;
+		flex-wrap: nowrap;
+	}
+
+	.other-filters {
+		position: relative;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 2px);
+		background: color-mix(in oklab, var(--card) 97%, white 3%);
+		padding: 0;
+		overflow: visible;
+	}
+
+	.other-filters > summary {
+		cursor: pointer;
+		font-size: 0.86rem;
+		font-weight: 600;
+		color: #334155;
+		list-style: none;
+		padding: 0.45rem 0.7rem;
+		display: inline-flex;
+		align-items: center;
+		min-height: 2rem;
+	}
+
+	.other-filters > summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.other-filters-content {
+		position: absolute;
+		top: calc(100% + 0.4rem);
+		left: 0;
+		z-index: 30;
+		width: min(360px, 82vw);
+		display: none;
+		flex-direction: column;
+		gap: 0.7rem;
+		padding: 1rem;
+		max-height: min(72vh, 640px);
+		overflow-y: auto;
+		overflow-x: hidden;
+		overscroll-behavior: contain;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) + 2px);
+		background: #ffffff;
+		box-shadow: 0 22px 44px rgba(15, 23, 42, 0.12);
+	}
+
+	.other-filters[open] .other-filters-content {
+		display: flex;
+	}
+
+	.other-filters-title {
+		font-size: 1.05rem;
+		font-weight: 700;
+		color: #1e293b;
+		padding-bottom: 0.55rem;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.filter-item {
+		display: grid;
+		gap: 0.35rem;
+	}
+
+	.filter-item label {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #475569;
+	}
+
+	.other-filters-content input,
+	.other-filters-content select {
+		height: 2.35rem;
+		padding: 0.32rem 0.62rem;
+		font-size: 0.92rem;
+		width: 100%;
+	}
+
+	.other-filters-content .control-text {
+		width: 100%;
+	}
+
+	.download-box {
+		display: flex;
+		align-items: flex-end;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: #fff;
+		box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 2600px;
+	}
+
+	th,
+	td {
+		padding: 0.66rem;
+		text-align: left;
+		border-bottom: 1px solid var(--border);
+		white-space: nowrap;
+		vertical-align: top;
+	}
+
+	td.wrap {
+		white-space: normal;
+		min-width: 180px;
+	}
+
+	tbody tr:hover {
+		background: color-mix(in oklab, var(--muted) 45%, white 55%);
+	}
+
+	tbody tr.overdue-row {
+		background: #fef2f2;
+	}
+
+	tbody tr.overdue-row:hover {
+		background: #fee2e2;
+	}
+
+	thead {
+		background: linear-gradient(180deg, color-mix(in oklab, var(--muted) 80%, white 20%), color-mix(in oklab, var(--muted) 65%, white 35%));
+	}
+
+	thead th {
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: #334155;
+	}
+
+	.actions-cell {
+		display: flex;
+		gap: 0.45rem;
+		align-items: center;
+	}
+
+	.btn-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 3px);
+		padding: 0.32rem 0.55rem;
+		background: #ffffff;
+		color: var(--foreground);
+		cursor: pointer;
+		font-size: 0.88rem;
+		font-weight: 500;
+	}
+
+	.btn-action.btn-danger {
+		color: #9f1239;
+		border-color: color-mix(in oklab, #9f1239 40%, var(--border));
+	}
+
+	.inline-dien-form {
+		display: inline-block;
+	}
+
+	.inline-dien-select {
+		min-width: 118px;
+		height: 1.95rem;
+		font-size: 0.84rem;
+		padding: 0.2rem 0.35rem;
+	}
+
+	.membership-warning {
+		display: inline-block;
+		margin-top: 0.35rem;
+		padding: 0.22rem 0.45rem;
+		border-radius: 999px;
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: #b91c1c;
+		background: #fee2e2;
+		border: 1px solid #fecaca;
+	}
+
+	@media (max-width: 980px) {
+		.filter-toolbar {
+			flex-wrap: wrap;
+		}
+
+		.filter-toolbar > * {
+			flex: initial;
+		}
+
+		.other-filters-content {
+			width: min(84vw, 360px);
+		}
+	}
+	@media (max-width: 680px) {
+		.other-filters {
+			width: 100%;
+		}
+
+		.other-filters-content {
+			position: static;
+			width: 100%;
+			margin-top: 0.35rem;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section class="page-head">
+		<div>
+			<h1>Xem/xuất dữ liệu Đảng viên</h1>
+			<p>Hiển thị toàn bộ trường dữ liệu và hỗ trợ lọc/xuất file.</p>
+		</div>
+	</section>
+
+	<section class="card">
+		<form method="get" class="filter-toolbar">
+			<input id="q" class="control-keyword" type="text" name="q" value="{{ filters.q }}" placeholder="Từ khóa: Họ tên / Mã ĐV / CCCD / SĐT" aria-label="Từ khóa">
+			<select id="gioi_tinh" class="control-small" name="gioi_tinh" aria-label="Giới tính">
+				<option value="">Giới tính</option>
+				{% for value, label in gioi_tinh_choices %}
+				<option value="{{ value }}" {% if filters.gioi_tinh == value %}selected{% endif %}>{{ label }}</option>
+				{% endfor %}
+			</select>
+			<select id="dien" class="control-medium" name="dien" aria-label="Diện Đảng viên">
+				<option value="">Diện ĐV</option>
+				{% for value, label in dien_dang_vien_choices %}
+				<option value="{{ value }}" {% if filters.dien == value %}selected{% endif %}>{{ label }}</option>
+				{% endfor %}
+			</select>
+			<select id="chi_bo" class="control-medium" name="chi_bo" aria-label="Chi bộ">
+				<option value="">Chi bộ</option>
+				{% for item in chi_bo_options %}
+				<option value="{{ item.ChiBoID }}" {% if filters.chi_bo == item.ChiBoID|stringformat:"s" %}selected{% endif %}>{{ item.TenChiBo }}</option>
+				{% endfor %}
+			</select>
+			<details class="other-filters"{% if filters.que_quan or filters.dan_toc or filters.gdpt or filters.trang_thai or filters.tuoi_dang_nhom or filters.gddh_group or filters.gdsdh_group or filters.hoc_ham_group or filters.ngoai_ngu_group or filters.tin_hoc_group or filters.ly_luan_chinh_tri %} open{% endif %}>
+				<summary>Các bộ lọc khác</summary>
+				<div class="other-filters-content">
+					<div class="other-filters-title">Bộ lọc mở rộng</div>
+					<div class="filter-item">
+						<label for="filter_que_quan">Quê quán</label>
+						<select id="filter_que_quan" name="que_quan" aria-label="Quê quán">
+							<option value="">Tất cả</option>
+							{% for value in que_quan_options %}
+							<option value="{{ value }}" {% if filters.que_quan == value %}selected{% endif %}>{{ value }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_dan_toc">Dân tộc</label>
+						<select id="filter_dan_toc" name="dan_toc" aria-label="Dân tộc">
+							<option value="">Tất cả</option>
+							{% for value in dan_toc_options %}
+							<option value="{{ value }}" {% if filters.dan_toc == value %}selected{% endif %}>{{ value }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_gdpt">Giáo dục phổ thông</label>
+						<select id="filter_gdpt" name="gdpt" aria-label="Giáo dục phổ thông">
+							<option value="">Tất cả</option>
+							{% for value in gdpt_options %}
+							<option value="{{ value }}" {% if filters.gdpt == value %}selected{% endif %}>{{ value }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_trang_thai">Trạng thái sinh hoạt</label>
+						<select id="filter_trang_thai" name="trang_thai" aria-label="Trạng thái sinh hoạt">
+							<option value="">Tất cả</option>
+							{% for value, label in trang_thai_choices %}
+							<option value="{{ value }}" {% if filters.trang_thai == value %}selected{% endif %}>{{ label }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_ly_luan_chinh_tri">Lý luận chính trị</label>
+						<select id="filter_ly_luan_chinh_tri" name="ly_luan_chinh_tri" aria-label="Lý luận chính trị">
+							<option value="">Tất cả</option>
+							{% for value in ly_luan_chinh_tri_options %}
+							<option value="{{ value }}" {% if filters.ly_luan_chinh_tri == value %}selected{% endif %}>{{ value }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_gddh_group">Giáo dục đại học</label>
+						<select id="filter_gddh_group" name="gddh_group" aria-label="Giáo dục đại học">
+							<option value="">Tất cả</option>
+							{% for value, label in khong_khac_options %}
+							<option value="{{ value }}" {% if filters.gddh_group == value %}selected{% endif %}>{{ label }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_gdsdh_group">Giáo dục sau đại học</label>
+						<select id="filter_gdsdh_group" name="gdsdh_group" aria-label="Giáo dục sau đại học">
+							<option value="">Tất cả</option>
+							{% for value, label in khong_khac_options %}
+							<option value="{{ value }}" {% if filters.gdsdh_group == value %}selected{% endif %}>{{ label }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_hoc_ham_group">Học hàm</label>
+						<select id="filter_hoc_ham_group" name="hoc_ham_group" aria-label="Học hàm">
+							<option value="">Tất cả</option>
+							{% for value, label in khong_khac_options %}
+							<option value="{{ value }}" {% if filters.hoc_ham_group == value %}selected{% endif %}>{{ label }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_ngoai_ngu_group">Ngoại ngữ</label>
+						<select id="filter_ngoai_ngu_group" name="ngoai_ngu_group" aria-label="Ngoại ngữ">
+							<option value="">Tất cả</option>
+							{% for value, label in khong_khac_options %}
+							<option value="{{ value }}" {% if filters.ngoai_ngu_group == value %}selected{% endif %}>{{ label }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_tin_hoc_group">Tin học</label>
+						<select id="filter_tin_hoc_group" name="tin_hoc_group" aria-label="Tin học">
+							<option value="">Tất cả</option>
+							{% for value, label in khong_khac_options %}
+							<option value="{{ value }}" {% if filters.tin_hoc_group == value %}selected{% endif %}>{{ label }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					<div class="filter-item">
+						<label for="filter_tuoi_dang_nhom">Tuổi Đảng</label>
+						<select id="filter_tuoi_dang_nhom" name="tuoi_dang_nhom" aria-label="Nhóm tuổi Đảng">
+							<option value="">Tuổi Đảng</option>
+							{% for value, label in tuoi_dang_groups %}
+							<option value="{{ value }}" {% if filters.tuoi_dang_nhom == value %}selected{% endif %}>{{ label }}</option>
+							{% endfor %}
+						</select>
+					</div>
+				</div>
+			</details>
+			<div class="filter-actions">
+				<button type="submit" class="btn filter-btn filter-btn-primary">Lọc dữ liệu</button>
+				<a href="{% url 'dangvien_data' %}" class="btn filter-btn">Xóa bộ lọc</a>
+			</div>
+		</form>
+		<form method="get" class="download-box" style="margin-top: 0.8rem;">
+			<input type="hidden" name="q" value="{{ filters.q }}">
+			<input type="hidden" name="gioi_tinh" value="{{ filters.gioi_tinh }}">
+			<input type="hidden" name="dien" value="{{ filters.dien }}">
+			<input type="hidden" name="chi_bo" value="{{ filters.chi_bo }}">
+			<input type="hidden" name="que_quan" value="{{ filters.que_quan }}">
+			<input type="hidden" name="dan_toc" value="{{ filters.dan_toc }}">
+			<input type="hidden" name="gdpt" value="{{ filters.gdpt }}">
+			<input type="hidden" name="trang_thai" value="{{ filters.trang_thai }}">
+			<input type="hidden" name="ly_luan_chinh_tri" value="{{ filters.ly_luan_chinh_tri }}">
+			<input type="hidden" name="gddh_group" value="{{ filters.gddh_group }}">
+			<input type="hidden" name="gdsdh_group" value="{{ filters.gdsdh_group }}">
+			<input type="hidden" name="hoc_ham_group" value="{{ filters.hoc_ham_group }}">
+			<input type="hidden" name="ngoai_ngu_group" value="{{ filters.ngoai_ngu_group }}">
+			<input type="hidden" name="tin_hoc_group" value="{{ filters.tin_hoc_group }}">
+			<input type="hidden" name="tuoi_dang_nhom" value="{{ filters.tuoi_dang_nhom }}">
+			<label for="download" style="font-size:0.86rem;color:var(--muted-foreground);">Tải dữ liệu</label>
+			<select id="download" name="download">
+				<option value="csv">CSV</option>
+				<option value="excel">Excel</option>
+			</select>
+			<button type="submit" class="btn">Download</button>
+		</form>
+	</section>
+
+	<section class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th>STT</th>
+					<th>CCCD</th>
+					<th>Mã ĐV</th>
+					<th>Họ tên</th>
+					<th>Bí danh</th>
+					<th>Giới tính</th>
+					<th>Ngày sinh</th>
+					<th>Quê quán</th>
+					<th>Dân tộc</th>
+					<th>Nơi thường trú</th>
+					<th>Nơi tạm trú</th>
+					<th>Nghề nghiệp</th>
+					<th>GDPT</th>
+					<th>GDNN</th>
+					<th>GDDH</th>
+					<th>GDSĐH</th>
+					<th>Học hàm</th>
+					<th>Lý luận CT</th>
+					<th>Ngoại ngữ</th>
+					<th>Tin học</th>
+					<th>Tiếng DTTS</th>
+					<th>Ngày vào Đảng</th>
+					<th>Ngày chính thức</th>
+					<th>Tuổi Đảng</th>
+					<th>Đảng bộ</th>
+					<th>Chi bộ</th>
+					<th>Trạng thái SH</th>
+					<th>Diện ĐV</th>
+					<th>Số ĐT</th>
+					<th>Địa chỉ</th>
+					<th>Ghi chú</th>
+					<th>Số Huy hiệu</th>
+					<th>Thao tác</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for item in dangvien_list %}
+				<tr{% if item.DienDangVien == "CHO_XET" and item.canh_bao_qua_han_xet %} class="overdue-row"{% endif %}>
+					<td>{{ forloop.counter }}</td>
+					<td>{{ item.SoCCCD|default:"-" }}</td>
+					<td>{{ item.MaDangVien|default:"-" }}</td>
+					<td>{{ item.HoTen|default:"-" }}</td>
+					<td>{{ item.BiDanh|default:"-" }}</td>
+					<td>{{ item.GioiTinh|default:"-" }}</td>
+					<td>{{ item.NgaySinh|date:"d/m/Y" }}</td>
+					<td>{{ item.QueQuan|default:"-" }}</td>
+					<td>{{ item.DanToc|default:"-" }}</td>
+					<td class="wrap">{{ item.NoiThuongTru|default:"-" }}</td>
+					<td class="wrap">{{ item.NoiTamTru|default:"-" }}</td>
+					<td>{{ item.NgheNghiep|default:"-" }}</td>
+					<td>{{ item.GDPT|default:"-" }}</td>
+					<td>{{ item.GDNN|default:"-" }}</td>
+					<td>{{ item.GDDH|default:"-" }}</td>
+					<td>{{ item.GDSĐH|default:"-" }}</td>
+					<td>{{ item.HocHam|default:"-" }}</td>
+					<td>{{ item.LyLuanChinhTri|default:"-" }}</td>
+					<td>{{ item.NgoaiNgu|default:"-" }}</td>
+					<td>{{ item.TinHoc|default:"-" }}</td>
+					<td>{{ item.TiengDTTS|default:"-" }}</td>
+					<td>{{ item.NgayVaoDang|date:"d/m/Y" }}</td>
+					<td>{{ item.NgayChinhThuc|date:"d/m/Y"|default:"-" }}</td>
+					<td>{{ item.tuoi_dang }}</td>
+					<td>{{ item.DangBoID.TenDangBo|default:"-" }}</td>
+					<td>{{ item.ChiBoID.TenChiBo|default:"-" }}</td>
+					<td>
+						{{ item.TrangThaiSinhHoat|default:"-" }}
+						{% if item.canh_bao_qua_han_xet %}
+						<div class="membership-warning">Quá hạn xét diện (hạn {{ item.han_xet_dang_vien|date:"d/m/Y" }})</div>
+						{% endif %}
+					</td>
+					<td>
+						<form method="post" action="{% url 'dangvien_update_dien' item.DangVienID %}" class="inline-dien-form">
+							{% csrf_token %}
+							<input type="hidden" name="next" value="{{ current_full_path }}">
+							<select name="dien_dang_vien" class="inline-dien-select" onchange="this.form.submit()" aria-label="Cập nhật diện Đảng viên">
+								{% for value, label in dien_dang_vien_choices %}
+								<option value="{{ value }}" {% if item.DienDangVien == value %}selected{% endif %}>{{ label }}</option>
+								{% endfor %}
+							</select>
+						</form>
+					</td>
+					<td>{{ item.SoDienThoai|default:"-" }}</td>
+					<td class="wrap">{{ item.DiaChi|default:"-" }}</td>
+					<td class="wrap">{{ item.GhiChu|default:"-" }}</td>
+					<td>{{ item.so_huy_hieu }}</td>
+					<td>
+						<div class="actions-cell">
+							<a href="{% url 'dangvien_edit' item.DangVienID %}" class="btn-action">Sửa</a>
+							<form method="post" action="{% url 'dangvien_delete' item.DangVienID %}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa Đảng viên này?');">
+								{% csrf_token %}
+								<button type="submit" class="btn-action btn-danger">Xóa</button>
+							</form>
+						</div>
+					</td>
+				</tr>
+				{% empty %}
+				<tr>
+					<td colspan="33">Không có dữ liệu phù hợp với bộ lọc.</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	document.addEventListener("DOMContentLoaded", function () {
+		var detailsEl = document.querySelector(".other-filters");
+		if (!detailsEl) {
+			return;
+		}
+
+		document.addEventListener("click", function (event) {
+			if (!detailsEl.open) {
+				return;
+			}
+			if (!detailsEl.contains(event.target)) {
+				detailsEl.removeAttribute("open");
+			}
+		});
+	});
+</script>
+{% endblock %}

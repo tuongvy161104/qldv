@@ -1,0 +1,87 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Sửa Chi bộ{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+		background: color-mix(in oklab, var(--card) 95%, white 5%);
+		max-width: 720px;
+	}
+
+	.form-grid {
+		display: grid;
+		gap: 0.7rem;
+	}
+
+	.form-field {
+		display: grid;
+		gap: 0.3rem;
+	}
+
+	.help {
+		font-size: 0.84rem;
+		color: var(--muted-foreground);
+	}
+
+	.action-row {
+		display: flex;
+		gap: 0.6rem;
+		align-items: center;
+	}
+
+	.btn-primary {
+		border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
+		background: color-mix(in oklab, var(--destructive) 75%, #9f1239 25%);
+		color: #fff;
+		padding: 0.6rem 0.95rem;
+		border-radius: calc(var(--radius) - 2px);
+	}
+
+	.btn-secondary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 2px);
+		padding: 0.56rem 0.9rem;
+		background: #fff;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section>
+		<h1>Sửa Chi bộ</h1>
+		<p>Đang cập nhật: <b>{{ chibo_item.TenChiBo }}</b></p>
+	</section>
+
+	<section class="card">
+		<form method="post" class="form-grid">
+			{% csrf_token %}
+			{% for field in form %}
+			<div class="form-field">
+				<label for="{{ field.id_for_label }}">{{ field.label }}</label>
+				{{ field }}
+				{% if field.errors %}
+				<div class="help">{{ field.errors|striptags }}</div>
+				{% endif %}
+			</div>
+			{% endfor %}
+			<div class="action-row">
+				<button type="submit" class="btn-primary">Lưu thay đổi</button>
+				<a href="{% url 'chibo_data' %}" class="btn-secondary">Hủy</a>
+			</div>
+		</form>
+	</section>
+</div>
+{% endblock %}

@@ -1,0 +1,503 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Theo dõi Biến động & Cơ cấu Đảng viên{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.page-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head p {
+		margin: 0.35rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.head-actions {
+		display: inline-flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+
+	.btn-danger {
+		border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
+		background: color-mix(in oklab, var(--destructive) 75%, #9f1239 25%);
+		color: #fff;
+		padding: 0.62rem 1rem;
+		border-radius: calc(var(--radius) - 2px);
+		font-weight: 600;
+	}
+
+	.summary-grid {
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+
+	.summary-card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.85rem;
+		background: color-mix(in oklab, var(--card) 96%, white 4%);
+	}
+
+	.summary-card .label {
+		font-size: 0.85rem;
+		color: var(--muted-foreground);
+	}
+
+	.summary-card .value {
+		font-size: 1.9rem;
+		font-weight: 700;
+		line-height: 1.2;
+		margin-top: 0.2rem;
+	}
+
+	.summary-card .sub {
+		font-size: 0.84rem;
+		margin-top: 0.22rem;
+		color: #475569;
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1rem;
+		background: #fff;
+	}
+
+	.card h2 {
+		font-size: 1.08rem;
+		margin: 0;
+	}
+
+	.line-chart-wrap {
+		position: relative;
+		margin-top: 0.9rem;
+		height: 340px;
+		width: 100%;
+		border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+		border-radius: calc(var(--radius) - 2px);
+		background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+		overflow: hidden;
+	}
+
+	#yearly-line-chart {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+
+	.line-tip {
+		position: fixed;
+		top: 0;
+		left: 0;
+		transform: translate(-9999px, -9999px);
+		background: rgba(15, 23, 42, 0.96);
+		color: #f8fafc;
+		border-radius: 10px;
+		padding: 0.45rem 0.6rem;
+		font-size: 0.86rem;
+		font-weight: 600;
+		line-height: 1.25;
+		pointer-events: none;
+		z-index: 5;
+		white-space: nowrap;
+	}
+
+	.line-note {
+		font-size: 0.86rem;
+		color: #64748b;
+		margin-top: 0.45rem;
+	}
+
+	.extra-charts {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.9rem;
+	}
+
+	.extra-card h3 {
+		margin: 0;
+		font-size: 1.02rem;
+		color: #0f172a;
+	}
+
+	.period-legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.9rem 1.1rem;
+		margin-top: 0.85rem;
+	}
+
+	.period-legend-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	.period-dot {
+		width: 13px;
+		height: 13px;
+		border-radius: 4px;
+		display: inline-block;
+		background: #9f1239;
+	}
+
+	.period-donut-wrap {
+		display: flex;
+		justify-content: center;
+		padding-top: 0.75rem;
+		max-width: 380px;
+		margin: 0 auto;
+	}
+
+	.period-donut {
+		width: 270px;
+		height: 270px;
+		border-radius: 50%;
+		position: relative;
+		background: conic-gradient(#cbd5e1 0 100%);
+	}
+
+	.period-donut::after {
+		content: "";
+		position: absolute;
+		inset: 34%;
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border) 75%, transparent);
+	}
+
+	.month-legend {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		margin-top: 0.9rem;
+		font-size: 0.96rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	.month-legend-dot {
+		width: 13px;
+		height: 13px;
+		border-radius: 4px;
+		display: inline-block;
+		background: #9f1239;
+	}
+
+	.month-chart {
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 0.9rem;
+		align-items: end;
+		height: 250px;
+		margin-top: 0.9rem;
+		padding: 0.9rem 0.45rem 0.3rem;
+		border-top: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+	}
+
+	.month-col {
+		display: grid;
+		gap: 0.45rem;
+		justify-items: center;
+	}
+
+	.month-bar-wrap {
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		height: 200px;
+		width: 100%;
+	}
+
+	.month-bar {
+		width: 100%;
+		max-width: 72px;
+		border-radius: 8px 8px 6px 6px;
+		background: linear-gradient(180deg, #be123c 0%, #9f1239 100%);
+		min-height: 3px;
+		height: 3px;
+	}
+
+	.month-value {
+		font-size: 0.88rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	.month-label {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #475569;
+		text-align: center;
+	}
+
+	@media (max-width: 1200px) {
+		.summary-grid {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+	}
+
+	@media (max-width: 780px) {
+		.summary-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.extra-charts {
+			grid-template-columns: 1fr;
+		}
+
+		.line-chart-wrap {
+			height: 280px;
+		}
+
+		.period-donut {
+			width: 220px;
+			height: 220px;
+		}
+
+		.month-chart {
+			height: 220px;
+		}
+
+		.month-bar-wrap {
+			height: 170px;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section class="page-head">
+		<div>
+			<h1>Theo dõi Biến động &amp; Cơ cấu Đảng viên</h1>
+			<p>Phân tích giai đoạn kết nạp và xu hướng theo năm.</p>
+		</div>
+		<div class="head-actions">
+			<a href="{% url 'dangvien' %}" class="btn">Theo dõi Tổng quan</a>
+			<a href="{% url 'dangvien_data' %}" class="btn">Xem/xuất dữ liệu</a>
+			<a href="{% url 'dangvien_add' %}" class="btn-danger">Thêm Đảng viên</a>
+		</div>
+	</section>
+
+	<section class="card">
+		<h2>Số Đảng viên kết nạp qua từng năm</h2>
+		<div class="line-chart-wrap" id="yearly-line-chart-wrap">
+			<svg id="yearly-line-chart" role="img" aria-label="Biểu đồ đường số kết nạp Đảng viên theo năm"></svg>
+			<div class="line-tip" id="yearly-line-tip"></div>
+		</div>
+	</section>
+
+	<section class="extra-charts">
+		<article class="card extra-card">
+			<h3>Phân bổ theo giai đoạn</h3>
+			<div class="period-legend">
+				{% for item in period_segments %}
+				<div class="period-legend-item">
+					<span class="period-dot" data-dot-color="{{ item.color }}"></span>
+					{{ item.label }}
+				</div>
+				{% endfor %}
+			</div>
+			<div class="period-donut-wrap">
+				<div class="period-donut" data-donut-style="{{ period_donut_style }}"></div>
+			</div>
+		</article>
+
+		<article class="card extra-card">
+			<h3>Tháng vào Đảng (đợt kết nạp trong năm)</h3>
+			<div class="month-legend">
+				<span class="month-legend-dot"></span>
+				Số Đảng viên
+			</div>
+			<div class="month-chart">
+				{% for item in monthly_admission_top %}
+				<div class="month-col">
+					<div class="month-value">{{ item.value }}</div>
+					<div class="month-bar-wrap">
+						<div class="month-bar" data-bar-height="{{ item.height_px }}"></div>
+					</div>
+					<div class="month-label">{{ item.label }}</div>
+				</div>
+				{% empty %}
+				<p>Chưa có dữ liệu tháng vào Đảng.</p>
+				{% endfor %}
+			</div>
+		</article>
+	</section>
+</div>
+{{ yearly_admission_bars|json_script:"yearly-admission-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	(function () {
+		document.querySelectorAll("[data-dot-color]").forEach(function (el) {
+			el.style.background = el.getAttribute("data-dot-color") || "#9f1239";
+		});
+
+		var periodDonut = document.querySelector("[data-donut-style]");
+		if (periodDonut) {
+			periodDonut.style.background = periodDonut.getAttribute("data-donut-style") || "conic-gradient(#cbd5e1 0 100%)";
+		}
+
+		document.querySelectorAll("[data-bar-height]").forEach(function (bar) {
+			var value = Number(bar.getAttribute("data-bar-height") || "0");
+			bar.style.height = Math.max(3, value) + "px";
+		});
+
+		var dataEl = document.getElementById("yearly-admission-data");
+		var svg = document.getElementById("yearly-line-chart");
+		var wrapper = document.getElementById("yearly-line-chart-wrap");
+		var tip = document.getElementById("yearly-line-tip");
+		if (!dataEl || !svg || !wrapper || !tip) {
+			return;
+		}
+
+		var pointsData = JSON.parse(dataEl.textContent || "[]");
+		if (!Array.isArray(pointsData) || !pointsData.length) {
+			return;
+		}
+
+		function createSvg(tag, attrs) {
+			var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+			Object.keys(attrs).forEach(function (key) {
+				el.setAttribute(key, attrs[key]);
+			});
+			return el;
+		}
+
+		function renderChart() {
+			var width = wrapper.clientWidth;
+			var height = wrapper.clientHeight;
+			var margin = { top: 22, right: 24, bottom: 44, left: 46 };
+			var innerWidth = Math.max(100, width - margin.left - margin.right);
+			var innerHeight = Math.max(120, height - margin.top - margin.bottom);
+
+			svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+			svg.innerHTML = "";
+
+			var values = pointsData.map(function (item) { return item.value || 0; });
+			var maxValue = Math.max.apply(null, values.concat([1]));
+			var yMax = Math.ceil(maxValue / 5) * 5;
+			var xStep = pointsData.length > 1 ? innerWidth / (pointsData.length - 1) : 0;
+			var plottedPoints = [];
+
+			for (var i = 0; i <= 5; i += 1) {
+				var yValue = Math.round((yMax * (5 - i)) / 5);
+				var y = margin.top + (innerHeight * i / 5);
+				svg.appendChild(createSvg("line", {
+					x1: margin.left,
+					y1: y,
+					x2: width - margin.right,
+					y2: y,
+					stroke: "#e2e8f0",
+					"stroke-width": "1"
+				}));
+				svg.appendChild(createSvg("text", {
+					x: margin.left - 8,
+					y: y + 4,
+					"text-anchor": "end",
+					fill: "#64748b",
+					"font-size": "11"
+				})).textContent = yValue;
+			}
+
+			var pathParts = [];
+			pointsData.forEach(function (item, idx) {
+				var x = margin.left + (xStep * idx);
+				var y = margin.top + innerHeight - ((item.value || 0) * innerHeight / yMax);
+				plottedPoints.push({ x: x, y: y, item: item });
+				pathParts.push((idx === 0 ? "M" : "L") + x + " " + y);
+
+				if (item.show_label) {
+					svg.appendChild(createSvg("text", {
+						x: x,
+						y: height - 12,
+						"text-anchor": "middle",
+						fill: "#64748b",
+						"font-size": "11"
+					})).textContent = item.year;
+				}
+
+			});
+
+			svg.appendChild(createSvg("path", {
+				d: pathParts.join(" "),
+				fill: "none",
+				stroke: "#be123c",
+				"stroke-width": "2.6",
+				"stroke-linecap": "round",
+				"stroke-linejoin": "round"
+			}));
+
+			pointsData.forEach(function (item, idx) {
+				var x = margin.left + (xStep * idx);
+				var y = margin.top + innerHeight - ((item.value || 0) * innerHeight / yMax);
+
+				var dot = createSvg("circle", {
+					cx: x,
+					cy: y,
+					r: "3.2",
+					fill: "#be123c",
+					stroke: "#ffffff",
+					"stroke-width": "1.2",
+					style: "cursor:crosshair"
+				});
+
+				svg.appendChild(dot);
+			});
+
+			function showTip(event, item) {
+				tip.textContent = item.year + ": " + item.value + " người";
+				tip.style.transform = "translate(" + (event.clientX + 12) + "px," + (event.clientY - 12) + "px)";
+			}
+
+			function hideTip() {
+				tip.style.transform = "translate(-9999px, -9999px)";
+			}
+
+			svg.onmousemove = function (event) {
+				if (!plottedPoints.length) {
+					return;
+				}
+
+				var rect = svg.getBoundingClientRect();
+				var xInChart = event.clientX - rect.left;
+				var nearest = plottedPoints[0];
+				var minDiff = Math.abs(nearest.x - xInChart);
+
+				for (var i = 1; i < plottedPoints.length; i += 1) {
+					var diff = Math.abs(plottedPoints[i].x - xInChart);
+					if (diff < minDiff) {
+						minDiff = diff;
+						nearest = plottedPoints[i];
+					}
+				}
+
+				showTip(event, nearest.item);
+			};
+
+			svg.onmouseleave = hideTip;
+		}
+
+		renderChart();
+		window.addEventListener("resize", renderChart);
+	})();
+</script>
+{% endblock %}

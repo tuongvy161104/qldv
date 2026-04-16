@@ -1,0 +1,303 @@
+﻿{% extends "qldv/base.html" %}
+
+{% block title %}Tổng quan | Quản lý Đảng viên{% endblock %}
+{% block page_header %}Trang tổng quan{% endblock %}
+
+{% block extra_css %}
+<style>
+	.dashboard {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.hero {
+		position: relative;
+		overflow: hidden;
+		padding: 1.25rem;
+		border-radius: var(--radius);
+		border: 1px solid var(--border);
+		background: #eef2f4;
+	}
+
+	.hero::after {
+		content: none;
+	}
+
+	.hero h2 {
+		font-size: 1.45rem;
+		margin-bottom: 0.4rem;
+	}
+
+	.hero p {
+		margin: 0;
+		max-width: 62ch;
+		color: var(--muted-foreground);
+	}
+
+	.hero-actions {
+		display: flex;
+		gap: 0.65rem;
+		margin-top: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.btn-primary {
+		background: var(--primary);
+		color: var(--primary-foreground);
+		border-color: color-mix(in oklab, var(--primary) 84%, black 16%);
+	}
+
+	.btn-primary:hover {
+		background: color-mix(in oklab, var(--primary) 86%, white 14%);
+		color: var(--primary-foreground);
+	}
+
+	.stat-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+
+	.stat-card {
+		padding: 0.95rem;
+		border-radius: calc(var(--radius) - 1px);
+		border: 1px solid var(--border);
+		background: color-mix(in oklab, var(--card) 96%, white 4%);
+	}
+
+	.stat-label {
+		margin: 0 0 0.2rem;
+		font-size: 0.82rem;
+		color: var(--muted-foreground);
+	}
+
+	.stat-value {
+		margin: 0;
+		font-size: 1.7rem;
+		font-weight: 700;
+	}
+
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.8rem;
+		margin-bottom: 0.6rem;
+	}
+
+	.section-header p {
+		margin: 0;
+		font-size: 0.9rem;
+		color: var(--muted-foreground);
+	}
+
+	.action-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+
+	.action-card {
+		padding: 0.95rem;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 1px);
+		background: color-mix(in oklab, var(--card) 95%, #ffffff 5%);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	.action-card:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 10px 24px color-mix(in oklab, var(--foreground) 8%, transparent);
+	}
+
+	.action-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.8rem;
+		margin-bottom: 0.45rem;
+	}
+
+	.badge {
+		font-size: 0.75rem;
+		padding: 0.18rem 0.45rem;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		background: color-mix(in oklab, var(--accent) 88%, white 12%);
+	}
+
+	.action-card p {
+		margin: 0;
+		font-size: 0.9rem;
+		color: var(--muted-foreground);
+	}
+
+	.action-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.28rem;
+		margin-top: 0.65rem;
+		font-size: 0.95rem;
+		font-weight: 500;
+		color: #d10014;
+		letter-spacing: 0.01em;
+		transition: transform 0.18s ease, color 0.18s ease;
+	}
+
+	.action-link:hover {
+		color: #b10011;
+		transform: translateX(2px);
+	}
+
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 1px);
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 650px;
+	}
+
+	thead {
+		background: color-mix(in oklab, var(--muted) 65%, transparent);
+	}
+
+	th,
+	td {
+		padding: 0.75rem;
+		text-align: left;
+		border-bottom: 1px solid var(--border);
+		font-size: 0.93rem;
+	}
+
+	tbody tr:last-child td {
+		border-bottom: none;
+	}
+
+	@media (max-width: 1100px) {
+		.stat-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.action-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.hero {
+			padding: 1rem;
+		}
+
+		.stat-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.hero h2 {
+			font-size: 1.2rem;
+		}
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+	{% if not user.is_authenticated %}
+	<section class="hero" style="background: linear-gradient(135deg, var(--primary) 0%, #a00015 100%); color: white; border-color: transparent;">
+		<h2 style="color: white;">Chào mừng đến Hệ thống quản lý Đảng viên</h2>
+		<p style="color: rgba(255, 255, 255, 0.9);">
+			Để truy cập hệ thống, vui lòng đăng nhập hoặc đăng ký tài khoản mới.
+		</p>
+		<div class="hero-actions">
+			<a href="{% url 'login' %}" class="btn btn-primary" style="background: white; color: var(--primary); border-color: white;">Đăng nhập</a>
+			<a href="{% url 'signup' %}" class="btn" style="background: rgba(255, 255, 255, 0.15); color: white; border-color: rgba(255, 255, 255, 0.3);">Đăng ký tài khoản</a>
+		</div>
+	</section>
+	{% else %}
+	<section class="hero">
+		<h2>Hệ thống quản lý Đảng viên thành phố</h2>
+		<p>
+			Theo dõi tổ chức Đảng theo cấp, quản lý danh sách Đảng viên và cập nhật tiến độ xét tặng Huy hiệu Đảng trên một màn hình thống nhất.
+		</p>
+		<div class="hero-actions">
+			<a href="/dangvien/" class="btn btn-primary">Cập nhật Đảng viên</a>
+			<a href="/chibo/" class="btn">Quản lý Chi bộ</a>
+		</div>
+	</section>
+
+	<section class="stat-grid" aria-label="Thống kê tổng quan">
+		<article class="stat-card">
+			<p class="stat-label">Tổng Chi bộ</p>
+			<p class="stat-value">{{ stats.chi_bo }}</p>
+		</article>
+		<article class="stat-card">
+			<p class="stat-label">Tổng Đảng viên</p>
+			<p class="stat-value">{{ stats.dang_vien }}</p>
+		</article>
+		<article class="stat-card">
+			<p class="stat-label">Hồ sơ Huy hiệu</p>
+			<p class="stat-value">{{ stats.huy_hieu }}</p>
+		</article>
+	</section>
+
+	<section>
+		<div class="section-header">
+			<h3>Chức năng nhanh</h3>
+			<p>Truy cập nhanh các phân hệ trong hệ thống</p>
+		</div>
+		<div class="action-grid">
+			{% for item in quick_actions %}
+			<article class="action-card">
+				<div class="action-head">
+					<h4>{{ item.title }}</h4>
+				</div>
+				<p>{{ item.description }}</p>
+				<a href="{{ item.path }}" class="action-link">Xem chi tiết <span aria-hidden="true">&rarr;</span></a>
+			</article>
+			{% endfor %}
+		</div>
+	</section>
+
+	<section>
+		<div class="section-header">
+			<h3>Cập nhật gần đây</h3>
+			<p>Dữ liệu cập nhật trực tiếp từ cơ sở dữ liệu</p>
+		</div>
+		<div class="table-wrap">
+			<table>
+				<thead>
+					<tr>
+						<th>Tên Chi bộ</th>
+						<th>Đảng bộ</th>
+						<th>Địa bàn</th>
+						<th>Số Đảng viên</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for row in recent_updates %}
+					<tr>
+						<td>{{ row.TenChiBo }}</td>
+						<td>{{ row.DangBoID.TenDangBo }}</td>
+						<td>{{ row.DiaBan }}</td>
+						<td>{{ row.dang_vien }}</td>
+					</tr>
+					{% empty %}
+					<tr>
+						<td colspan="4">Chưa có dữ liệu Chi bộ.</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</section>
+	{% endif %}
+</div>
+{% endblock %}
+
+
+
+
+

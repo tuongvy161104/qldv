@@ -239,6 +239,7 @@ class DangVienForm(forms.ModelForm):
             "SoDienThoai",
             "GhiChu",
             "HuyHieuCaoNhat",
+            "SoHuyHieu",
         ]
         labels = {
             "SoCCCD": "Số CCCD",
@@ -267,6 +268,7 @@ class DangVienForm(forms.ModelForm):
             "SoDienThoai": "Số điện thoại",
             "GhiChu": "Ghi chú",
             "HuyHieuCaoNhat": "Huy hiệu cao nhất",
+            "SoHuyHieu": "Số huy hiệu",
         }
         widgets = {
             "NgaySinh": forms.DateInput(attrs={"type": "date"}),
@@ -344,6 +346,10 @@ class DangVienForm(forms.ModelForm):
         self.fields["TiengDTTS"].widget = forms.Select(choices=EMPTY_CHOICE + tieng_dtts_choices)
         self.fields["TiengDTTS"].required = True
 
+        # Huy hiệu cao nhất: Dropdown từ 30 đến 90
+        badge_choices = [("", "------")] + [(f"{m} năm", f"{m} năm") for m in [30, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]]
+        self.fields["HuyHieuCaoNhat"].widget = forms.Select(choices=badge_choices)
+
         # Theo nghiệp vụ hiện tại: tất cả trường bắt buộc, trừ Ghi chú và Huy hiệu.
         optional_fields = {"GhiChu", "NgayVaoDang", "HuyHieuCaoNhat"}
         for field_name, field in self.fields.items():
@@ -393,7 +399,11 @@ class DangVienForm(forms.ModelForm):
         if self.dang_bo is None:
             raise forms.ValidationError("Không tìm thấy Đảng bộ mặc định.")
         instance.DangBoID = self.dang_bo
-        
+
+        # Nếu người dùng không chọn HuyHieuCaoNhat, xóa để model tự tính từ NgayVaoDang
+        if not self.cleaned_data.get("HuyHieuCaoNhat"):
+            instance.HuyHieuCaoNhat = None
+
         if commit:
             instance.save()
         return instance

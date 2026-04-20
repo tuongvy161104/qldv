@@ -130,6 +130,10 @@ def get_eligible_members(dang_viens, review_date, badge_year, awarded_badges):
     years_to_check = [badge_year] if badge_year else list(BADGE_MILESTONES)
     years_to_check.sort()
 
+    today = datetime.date.today()
+    # Nếu ngày đợt xét chưa đến (review_date > today) → đủ điều kiện nhưng chưa đến đợt trao
+    chua_den_dot = review_date > today
+
     eligible = []
 
     for dang_vien in dang_viens:
@@ -141,6 +145,7 @@ def get_eligible_members(dang_viens, review_date, badge_year, awarded_badges):
                         "eligible_for_years": years,
                         "party_age": calculate_party_age_at_date(dang_vien.NgayVaoDang, review_date),
                         "eligible_date": add_years(dang_vien.NgayVaoDang, years),
+                        "chua_den_dot": chua_den_dot,
                     }
                 )
                 break

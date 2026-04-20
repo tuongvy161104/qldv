@@ -216,6 +216,7 @@
 						<th>Tuổi Đảng</th>
 						<th>Mốc đủ ĐK</th>
 						<th>Ngày đủ ĐK</th>
+						<th>Trạng thái</th>
 						<th>Thao tác</th>
 					</tr>
 				</thead>
@@ -230,6 +231,20 @@
 						<td><span style="color: #7f0012; font-weight: 700;">{{ row.eligible_for_years }} năm</span></td>
 						<td>{{ row.eligible_date|date:"d/m/Y" }}</td>
 						<td>
+							{% if row.chua_den_dot %}
+							<span style="display:inline-block; background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; border-radius:999px; padding:0.2rem 0.65rem; font-size:0.8rem; font-weight:600; white-space:nowrap;">
+								⏳ Chưa đến đợt trao
+							</span>
+							{% else %}
+							<span style="display:inline-block; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:999px; padding:0.2rem 0.65rem; font-size:0.8rem; font-weight:600; white-space:nowrap;">
+								✓ Cần xét duyệt
+							</span>
+							{% endif %}
+						</td>
+						<td>
+							{% if row.chua_den_dot %}
+							<span style="color: var(--muted-foreground); font-size: 0.85rem; font-style: italic;">Đợt trao chưa diễn ra</span>
+							{% else %}
 							<form method="post">
 								{% csrf_token %}
 								<input type="hidden" name="dang_vien_id" value="{{ row.dang_vien.DangVienID }}">
@@ -258,11 +273,12 @@
 									<button type="submit" disabled>Lưu Huy hiệu</button>
 								</div>
 							</form>
+							{% endif %}
 						</td>
 					</tr>
 					{% empty %}
 					<tr>
-						<td colspan="8" style="text-align: center; padding: 2rem;">Không có Đảng viên đủ điều kiện trong đợt này.</td>
+						<td colspan="9" style="text-align: center; padding: 2rem;">Không có Đảng viên đủ điều kiện trong đợt này.</td>
 					</tr>
 					{% endfor %}
 				</tbody>

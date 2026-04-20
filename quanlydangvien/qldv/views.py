@@ -244,6 +244,7 @@ def _import_dang_vien_data(uploaded_file, default_dang_bo=None):
         "ghichu": "GhiChu",
         "huyhieucaonhat": "HuyHieuCaoNhat",
         "huyhieu": "HuyHieuCaoNhat",
+        "sohuyhieu": "SoHuyHieu",
     }
     rows = _parse_uploaded_rows(uploaded_file, header_aliases)
 
@@ -367,6 +368,7 @@ def _import_dang_vien_data(uploaded_file, default_dang_bo=None):
                 SoDienThoai=so_dien_thoai or None,
                 GhiChu=_normalize_text(row.get("GhiChu")) or None,
                 HuyHieuCaoNhat=_normalize_text(row.get("HuyHieuCaoNhat")) or None,
+                SoHuyHieu=int(_normalize_text(row.get("SoHuyHieu")) or 0),
             )
             created += 1
 
@@ -1343,7 +1345,40 @@ def _export_dang_vien_csv(dangvien_list):
     writer = csv.writer(response)
     writer.writerow(["CCCD","Mã ĐV","Họ tên","Bí danh","Giới tính","Ngày sinh","Quê quán","Dân tộc","Nơi thường trú","Nơi tạm trú","Nghề nghiệp","GDPT","GDNN","GDDH","GDSĐH","Học hàm","Lý luận chính trị","Ngoại ngữ","Tin học","Tiếng DTTS","Ngày vào Đảng","Ngày chính thức","Tuổi Đảng","Đảng bộ","Chi bộ","Trạng thái","Diện Đảng viên","Số điện thoại","Ghi chú","Số Huy hiệu","Huy hiệu cao nhất"])
     for item in dangvien_list:
-        writer.writerow([item.SoCCCD,item.MaDangVien,item.HoTen,item.BiDanh,item.GioiTinh,item.NgaySinh.strftime("%d/%m/%Y") if item.NgaySinh else "",item.QueQuan,item.DanToc,item.NoiThuongTru,item.NoiTamTru,item.NgheNghiep,item.GDPT,item.GDNN,item.GDDH,item.GDSĐH,item.HocHam,item.LyLuanChinhTri,item.NgoaiNgu,item.TinHoc,item.TiengDTTS,item.NgayVaoDang.strftime("%d/%m/%Y") if item.NgayVaoDang else "",item.NgayChinhThuc.strftime("%d/%m/%Y") if item.NgayChinhThuc else "",item.tuoi_dang,item.DangBoID.TenDangBo if item.DangBoID else "",item.ChiBoID.TenChiBo if item.ChiBoID else "",item.TrangThaiSinhHoat,item.DienDangVien,item.SoDienThoai,item.GhiChu,item.so_huy_hieu,item.HuyHieuCaoNhat or ""])
+        writer.writerow([
+            item.SoCCCD,
+            item.MaDangVien,
+            item.HoTen,
+            item.BiDanh,
+            item.GioiTinh,
+            item.NgaySinh.strftime("%d/%m/%Y") if item.NgaySinh else "",
+            item.QueQuan,
+            item.DanToc,
+            item.NoiThuongTru,
+            item.NoiTamTru,
+            item.NgheNghiep,
+            item.GDPT,
+            item.GDNN,
+            item.GDDH,
+            item.GDSĐH,
+            item.HocHam,
+            item.LyLuanChinhTri,
+            item.NgoaiNgu,
+            item.TinHoc,
+            item.TiengDTTS,
+            item.NgayVaoDang.strftime("%d/%m/%Y") if item.NgayVaoDang else "",
+            item.NgayChinhThuc.strftime("%d/%m/%Y") if item.NgayChinhThuc else "",
+            item.tuoi_dang,
+            item.DangBoID.TenDangBo if item.DangBoID else "",
+            item.ChiBoID.TenChiBo if item.ChiBoID else "",
+            item.TrangThaiSinhHoat,
+            item.DienDangVien,
+            item.SoDienThoai,
+            item.GhiChu,
+            item.so_huy_hieu,
+            item.HuyHieuCaoNhat or "",
+        ])
+
     return response
 
 
@@ -1359,8 +1394,43 @@ def _export_dang_vien_excel(dangvien_list):
     headers = ["CCCD","Mã ĐV","Họ tên","Bí danh","Giới tính","Ngày sinh","Quê quán","Dân tộc","Nơi thường trú","Nơi tạm trú","Nghề nghiệp","GDPT","GDNN","GDDH","GDSĐH","Học hàm","Lý luận chính trị","Ngoại ngữ","Tin học","Tiếng DTTS","Ngày vào Đảng","Ngày chính thức","Tuổi Đảng","Đảng bộ","Chi bộ","Trạng thái","Diện Đảng viên","Số điện thoại","Ghi chú","Số Huy hiệu","Huy hiệu cao nhất"]
     worksheet.append(headers)
     for item in dangvien_list:
-        worksheet.append([item.SoCCCD,item.MaDangVien,item.HoTen,item.BiDanh,item.GioiTinh,item.NgaySinh.strftime("%d/%m/%Y") if item.NgaySinh else "",item.QueQuan,item.DanToc,item.NoiThuongTru,item.NoiTamTru,item.NgheNghiep,item.GDPT,item.GDNN,item.GDDH,item.GDSĐH,item.HocHam,item.LyLuanChinhTri,item.NgoaiNgu,item.TinHoc,item.TiengDTTS,item.NgayVaoDang.strftime("%d/%m/%Y") if item.NgayVaoDang else "",item.NgayChinhThuc.strftime("%d/%m/%Y") if item.NgayChinhThuc else "",item.tuoi_dang,item.DangBoID.TenDangBo if item.DangBoID else "",item.ChiBoID.TenChiBo if item.ChiBoID else "",item.TrangThaiSinhHoat,item.DienDangVien,item.SoDienThoai,item.GhiChu,item.so_huy_hieu,item.HuyHieuCaoNhat or ""])
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        worksheet.append([
+            item.SoCCCD,
+            item.MaDangVien,
+            item.HoTen,
+            item.BiDanh,
+            item.GioiTinh,
+            item.NgaySinh.strftime("%d/%m/%Y") if item.NgaySinh else "",
+            item.QueQuan,
+            item.DanToc,
+            item.NoiThuongTru,
+            item.NoiTamTru,
+            item.NgheNghiep,
+            item.GDPT,
+            item.GDNN,
+            item.GDDH,
+            item.GDSĐH,
+            item.HocHam,
+            item.LyLuanChinhTri,
+            item.NgoaiNgu,
+            item.TinHoc,
+            item.TiengDTTS,
+            item.NgayVaoDang.strftime("%d/%m/%Y") if item.NgayVaoDang else "",
+            item.NgayChinhThuc.strftime("%d/%m/%Y") if item.NgayChinhThuc else "",
+            item.tuoi_dang,
+            item.DangBoID.TenDangBo if item.DangBoID else "",
+            item.ChiBoID.TenChiBo if item.ChiBoID else "",
+            item.TrangThaiSinhHoat,
+            item.DienDangVien,
+            item.SoDienThoai,
+            item.GhiChu,
+            item.so_huy_hieu,
+            item.HuyHieuCaoNhat or "",
+        ])
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     response["Content-Disposition"] = 'attachment; filename="dang_vien_data.xlsx"'
     workbook.save(response)
     return response
@@ -1804,6 +1874,7 @@ def huyhieu_data(request):
         "year_options": range(timezone.localdate().year, 1929, -1),
         "badge_milestones": BADGE_MILESTONES,
         "trang_thai_choices": ["Đã trao", "Truy tặng"],
+        "today": timezone.localdate(),
     }
     return render(request, "qldv/huyhieu_data.html", context)
 

@@ -125,31 +125,19 @@ class DangVien(models.Model):
     SoDienThoai = models.CharField(max_length=10, null=True, blank=True)
     GhiChu = models.TextField(blank=True, null=True)
     HuyHieuCaoNhat = models.CharField(max_length=100, null=True, blank=True)
+    SoHuyHieu = models.IntegerField(default=0)
 
     def update_highest_badge(self):
-        """Find and update the highest badge milestone based on HuyHieuDang records."""
-        # Using a dynamic import inside to avoid circular dependency with services if needed,
-        # but here we can just use simple regex or string parsing if we want to be safe.
-        import re
-        badges = self.huyhieudang_set.all()
-        if not badges:
-            self.HuyHieuCaoNhat = None
-        else:
-            highest_val = 0
-            highest_label = None
-            for b in badges:
-                # Expecting format like "Huy hiệu 30 năm tuổi Đảng"
-                match = re.search(r"(\d+)", b.LoaiHuyHieu)
-                if match:
-                    val = int(match.group(1))
-                    if val > highest_val:
-                        highest_val = val
-                        highest_label = f"{val} năm"
-            
-            self.HuyHieuCaoNhat = highest_label
-        
-        # We use update_fields to avoid recursion if save() is overridden to call this
-        DangVien.objects.filter(pk=self.pk).update(HuyHieuCaoNhat=self.HuyHieuCaoNhat)
+        """
+        Tái tính HuyHieuCaoNhat và SoHuyHieu dựa vào NgayVaoDang.
+        Được gọi tự động khi HuyHieuDang được lưu hoặc xóa.
+        """
+        self.auto_compute_badge_from_ngay_vao_dang()
+        DangVien.objects.filter(pk=self.pk).update(
+            HuyHieuCaoNhat=self.HuyHieuCaoNhat,
+            SoHuyHieu=self.SoHuyHieu,
+        )
+
 
     class Meta:
         db_table = 'DangVien'
@@ -261,10 +249,50 @@ class DangVien(models.Model):
 
         return f"{prefix}{next_sequence:06d}"
 
+    BADGE_MILESTONES = [30, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
+
+    def auto_compute_badge_from_ngay_vao_dang(self, review_date=None):
+        """
+        Tự động tính HuyHieuCaoNhat và SoHuyHieu dựa vào NgayVaoDang.
+
+        Logic theo sơ đồ:
+        - Với mỗi mốc huy hiệu y (30, 40, 45, ..., 90):
+          + Tuổi Đảng = Năm xét - Năm vào Đảng
+          + Nếu Tuổi Đảng >= y VÀ NgayVaoDang <= ngày xét → đủ điều kiện nhận mốc y
+        - HuyHieuCaoNhat = mốc cao nhất đủ điều kiện
+        - SoHuyHieu = số mốc đã đủ điều kiện
+        """
+        if not self.NgayVaoDang:
+            return
+
+        today = review_date or datetime.date.today()
+        join_year = self.NgayVaoDang.year
+        review_year = today.year
+
+        # Tuổi Đảng theo năm (không dùng ngày chính xác, đúng với sơ đồ)
+        tuoi_dang = review_year - join_year
+
+        earned_milestones = []
+        for milestone in self.BADGE_MILESTONES:
+            # Điều kiện: Tuổi Đảng >= milestone VÀ NgayVaoDang <= ngày xét
+            if tuoi_dang >= milestone and self.NgayVaoDang <= today:
+                earned_milestones.append(milestone)
+
+        if earned_milestones:
+            highest = max(earned_milestones)
+            self.HuyHieuCaoNhat = f"{highest} năm"
+            self.SoHuyHieu = len(earned_milestones)
+        else:
+            self.HuyHieuCaoNhat = None
+            self.SoHuyHieu = 0
+
     def save(self, *args, **kwargs):
         if not self.MaDangVien:
             self.MaDangVien = self.generate_ma_dang_vien()
         self.apply_membership_rules()
+        # Nếu người dùng không tự chọn HuyHieuCaoNhat, tự tính từ NgayVaoDang
+        if not self.HuyHieuCaoNhat:
+            self.auto_compute_badge_from_ngay_vao_dang()
         super().save(*args, **kwargs)
 
     def __str__(self):

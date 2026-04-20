@@ -292,9 +292,13 @@
 						{{ form.SoDienThoai }}
 						{% if form.SoDienThoai.errors %}<div class="help">{{ form.SoDienThoai.errors|striptags }}</div>{% endif %}
 					</div>
-					<div class="form-field full-width">
+					<div class="form-field">
 						<label for="{{ form.HuyHieuCaoNhat.id_for_label }}">{{ form.HuyHieuCaoNhat.label }}</label>
 						{{ form.HuyHieuCaoNhat }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.SoHuyHieu.id_for_label }}">{{ form.SoHuyHieu.label }}</label>
+						{{ form.SoHuyHieu }}
 					</div>
 					<div class="form-field full-width">
 						<label for="{{ form.GhiChu.id_for_label }}">{{ form.GhiChu.label }}</label>

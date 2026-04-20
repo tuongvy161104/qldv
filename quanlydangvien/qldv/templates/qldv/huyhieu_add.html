@@ -104,6 +104,44 @@
 		font-size: 0.85rem;
 		color: var(--muted-foreground);
 	}
+
+	/* Column guide - info box */
+	.col-guide {
+		background: #fff5f5;
+		border: 1px solid #fecaca;
+		border-radius: var(--radius);
+		padding: 1rem 1.25rem;
+		font-size: 0.9rem;
+		color: #7f1d1d;
+	}
+
+	.col-guide b {
+		display: block;
+		margin-bottom: 0.6rem;
+		color: #991b1b;
+	}
+
+	.col-guide ul {
+		margin: 0 0 0.75rem 1.2rem;
+		padding: 0;
+		line-height: 1.9;
+	}
+
+	.col-guide p {
+		margin: 0;
+		font-style: italic;
+		font-size: 0.85rem;
+		color: #b91c1c;
+	}
+
+	.col-guide code {
+		background: rgba(220, 38, 38, 0.1);
+		padding: 0.05rem 0.35rem;
+		border-radius: 4px;
+		font-size: 0.83rem;
+		font-family: monospace;
+		color: #9f1239;
+	}
 </style>
 {% endblock %}
 
@@ -192,13 +230,28 @@
 
 	<section class="card panel" data-mode-panel="import">
 		<h2>Nhập từ file CSV/Excel</h2>
-		<p style="margin-bottom: 1.5rem; color: var(--muted-foreground);">Tải lên danh sách hồ sơ huy hiệu. File cần có các cột: DangVienID hoặc MaDangVien hoặc SoCCCD, LoaiHuyHieu, NgayDuDieuKien, DotTraoTang, TrangThai, SoQuyetDinh, NgayTrao.</p>
-		
-		<form method="post" enctype="multipart/form-data">
+		<p style="margin-bottom: 1rem; color: var(--muted-foreground);">Hỗ trợ định dạng .csv và .xlsx</p>
+
+		<div class="col-guide">
+			<b>Các cột bắt buộc trong tệp:</b>
+			<ul>
+				<li><code>MaDangVien</code> hoặc <code>SoCCCD</code> — để xác định Đảng viên</li>
+				<li><code>LoaiHuyHieu</code> — VD: <em>Huy hiệu 30 năm tuổi Đảng</em></li>
+				<li><code>NgayDuDieuKien</code> — định dạng <em>dd/mm/yyyy</em></li>
+				<li><code>DotTraoTang</code> — VD: <em>Đợt 02/09/2023</em></li>
+				<li><code>TrangThai</code> — <em>Đã trao</em> hoặc <em>Truy tặng</em></li>
+				<li><code>SoQuyetDinh</code> — VD: <em>000123</em></li>
+				<li><code>NgayTrao</code> — định dạng <em>dd/mm/yyyy</em></li>
+				<li><code>GhiChu</code> — <em>(tuỳ chọn)</em></li>
+			</ul>
+			<p>* Hệ thống sẽ tự động tìm Đảng viên khớp với Mã ĐV hoặc CCCD bạn nhập.</p>
+		</div>
+
+		<form method="post" enctype="multipart/form-data" style="margin-top: 1.2rem;">
 			{% csrf_token %}
 			<input type="hidden" name="action_type" value="legacy_import">
 			<div class="form-field">
-				<label for="{{ import_form.import_file.id_for_label }}">Chọn file</label>
+				<label for="{{ import_form.import_file.id_for_label }}">Chọn file (.csv hoặc .xlsx)</label>
 				{{ import_form.import_file }}
 			</div>
 			<button type="submit" class="btn-primary">Bắt đầu Import</button>

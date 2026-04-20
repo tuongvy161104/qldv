@@ -508,9 +508,9 @@
 					<th>Trạng thái SH</th>
 					<th>Diện ĐV</th>
 					<th>Số ĐT</th>
-					<th>Địa chỉ</th>
 					<th>Ghi chú</th>
 					<th>Số Huy hiệu</th>
+					<th>Huy hiệu cao nhất</th>
 					<th>Thao tác</th>
 				</tr>
 			</thead>
@@ -561,9 +561,9 @@
 						</form>
 					</td>
 					<td>{{ item.SoDienThoai|default:"-" }}</td>
-					<td class="wrap">{{ item.DiaChi|default:"-" }}</td>
 					<td class="wrap">{{ item.GhiChu|default:"-" }}</td>
 					<td>{{ item.so_huy_hieu }}</td>
+					<td><b>{{ item.HuyHieuCaoNhat|default:"-" }}</b></td>
 					<td>
 						<div class="actions-cell">
 							<a href="{% url 'dangvien_edit' item.DangVienID %}" class="btn-action">Sửa</a>

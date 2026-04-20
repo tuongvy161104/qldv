@@ -123,8 +123,33 @@ class DangVien(models.Model):
     )
     DienDangVien = models.CharField(max_length=20, choices=DIEN_DANG_VIEN_CHOICES, default="DU_BI")
     SoDienThoai = models.CharField(max_length=10, null=True, blank=True)
-    DiaChi = models.CharField(max_length=255)
     GhiChu = models.TextField(blank=True, null=True)
+    HuyHieuCaoNhat = models.CharField(max_length=100, null=True, blank=True)
+
+    def update_highest_badge(self):
+        """Find and update the highest badge milestone based on HuyHieuDang records."""
+        # Using a dynamic import inside to avoid circular dependency with services if needed,
+        # but here we can just use simple regex or string parsing if we want to be safe.
+        import re
+        badges = self.huyhieudang_set.all()
+        if not badges:
+            self.HuyHieuCaoNhat = None
+        else:
+            highest_val = 0
+            highest_label = None
+            for b in badges:
+                # Expecting format like "Huy hiệu 30 năm tuổi Đảng"
+                match = re.search(r"(\d+)", b.LoaiHuyHieu)
+                if match:
+                    val = int(match.group(1))
+                    if val > highest_val:
+                        highest_val = val
+                        highest_label = f"{val} năm"
+            
+            self.HuyHieuCaoNhat = highest_label
+        
+        # We use update_fields to avoid recursion if save() is overridden to call this
+        DangVien.objects.filter(pk=self.pk).update(HuyHieuCaoNhat=self.HuyHieuCaoNhat)
 
     class Meta:
         db_table = 'DangVien'
@@ -260,6 +285,15 @@ class HuyHieuDang(models.Model):
 
     class Meta:
         db_table = 'HuyHieuDang'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.DangVienID.update_highest_badge()
+
+    def delete(self, *args, **kwargs):
+        dv = self.DangVienID
+        super().delete(*args, **kwargs)
+        dv.update_highest_badge()
 
     def __str__(self):
         return f"{self.LoaiHuyHieu} - {self.DangVienID.HoTen}"

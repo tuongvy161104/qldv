@@ -237,8 +237,8 @@ class DangVienForm(forms.ModelForm):
             "DienDangVien",
             "TrangThaiSinhHoat",
             "SoDienThoai",
-            "DiaChi",
             "GhiChu",
+            "HuyHieuCaoNhat",
         ]
         labels = {
             "SoCCCD": "Số CCCD",
@@ -265,8 +265,8 @@ class DangVienForm(forms.ModelForm):
             "DienDangVien": "Diện Đảng viên",
             "TrangThaiSinhHoat": "Trạng thái sinh hoạt",
             "SoDienThoai": "Số điện thoại",
-            "DiaChi": "Địa chỉ",
             "GhiChu": "Ghi chú",
+            "HuyHieuCaoNhat": "Huy hiệu cao nhất",
         }
         widgets = {
             "NgaySinh": forms.DateInput(attrs={"type": "date"}),
@@ -282,74 +282,43 @@ class DangVienForm(forms.ModelForm):
             chi_bo_queryset = chi_bo_queryset.filter(DangBoID=self.dang_bo)
         self.fields["ChiBoID"].queryset = chi_bo_queryset.order_by("TenChiBo")
 
-        self.fields["QueQuan"] = forms.ChoiceField(
-            choices=PROVINCE_CITY_CHOICES,
-            label="Quê quán",
-            required=True,
-        )
+        self.fields["QueQuan"].widget = forms.Select(choices=PROVINCE_CITY_CHOICES)
+        self.fields["QueQuan"].required = True
 
         self.fields["GioiTinh"].choices = EMPTY_CHOICE + [
             choice for choice in self.fields["GioiTinh"].choices if choice[0] != ""
         ]
 
-        self.fields["DanToc"] = forms.ChoiceField(
-            choices=EMPTY_CHOICE + ETHNIC_GROUPS,
-            label="Dân tộc",
-            required=True,
-        )
+        self.fields["DanToc"].widget = forms.Select(choices=EMPTY_CHOICE + ETHNIC_GROUPS)
+        self.fields["DanToc"].required = True
 
-        self.fields["DienDangVien"] = forms.ChoiceField(
-            choices=EMPTY_CHOICE + DangVien.DIEN_DANG_VIEN_CHOICES,
-            label="Diện Đảng viên",
-            required=True,
-        )
+        self.fields["DienDangVien"].widget = forms.Select(choices=EMPTY_CHOICE + DangVien.DIEN_DANG_VIEN_CHOICES)
+        self.fields["DienDangVien"].required = True
         
-        self.fields["TrangThaiSinhHoat"] = forms.ChoiceField(
-            choices=EMPTY_CHOICE + self.TRANG_THAI_SINH_HOAT_CHOICES,
-            label="Trạng thái sinh hoạt",
-        )
+        self.fields["TrangThaiSinhHoat"].widget = forms.Select(choices=EMPTY_CHOICE + self.TRANG_THAI_SINH_HOAT_CHOICES)
 
         self.fields["ChiBoID"].empty_label = "------"
         
         # GDPT: Chọn 1/12, 2/12, ..., 12/12 hoặc Không
         gdpt_choices = [("Không", "Không")] + [(f"{i}/12", f"{i}/12") for i in range(1, 13)]
-        self.fields["GDPT"] = forms.ChoiceField(
-            choices=EMPTY_CHOICE + gdpt_choices,
-            required=False,
-            label="Giáo dục phổ thông",
-        )
+        self.fields["GDPT"].widget = forms.Select(choices=EMPTY_CHOICE + gdpt_choices)
+        self.fields["GDPT"].required = False
         
         # GDNN: Điền hoặc chọn Không
-        self.fields["GDNN"] = forms.CharField(
-            required=True,
-            label="Giáo dục nghề nghiệp",
-            widget=forms.TextInput(attrs={"placeholder": "VD: Kỹ sư điện, ..."}),
-        )
+        self.fields["GDNN"].widget.attrs.update({"placeholder": "VD: Kỹ sư điện, ..."})
+        self.fields["GDNN"].required = True
         
         # GDDH: Điền hoặc chọn Không, gợi ý các giá trị
-        self.fields["GDDH"] = forms.CharField(
-            required=True,
-            label="Giáo dục đại học",
-            widget=forms.TextInput(
-                attrs={"placeholder": "VD: Kỹ sư cơ khí,..."}
-            ),
-        )
+        self.fields["GDDH"].widget.attrs.update({"placeholder": "VD: Kỹ sư cơ khí,..."})
+        self.fields["GDDH"].required = True
         
         # GDSĐH: Điền hoặc chọn Không, gợi ý các giá trị
-        self.fields["GDSĐH"] = forms.CharField(
-            required=True,
-            label="Giáo dục sau đại học",
-            widget=forms.TextInput(
-                attrs={"placeholder": "VD: Thạc sỹ kinh tế, ... "}
-            ),
-        )
+        self.fields["GDSĐH"].widget.attrs.update({"placeholder": "VD: Thạc sỹ kinh tế, ... "})
+        self.fields["GDSĐH"].required = True
         
         # HocHam: Ghi chức danh được nhà nước phong
-        self.fields["HocHam"] = forms.CharField(
-            required=True,
-            label="Học hàm",
-            widget=forms.TextInput(attrs={"placeholder": "VD: Giáo sư, Phó giáo sư,... "}),
-        )
+        self.fields["HocHam"].widget.attrs.update({"placeholder": "VD: Giáo sư, Phó giáo sư,... "})
+        self.fields["HocHam"].required = True
         
         # LyLuanChinhTri: Chọn từ sơ cấp, trung cấp, cao cấp, cử nhân hoặc Không
         ly_luan_choices = [
@@ -359,42 +328,24 @@ class DangVienForm(forms.ModelForm):
             ("Cao cấp", "Cao cấp"),
             ("Cử nhân", "Cử nhân"),
         ]
-        self.fields["LyLuanChinhTri"] = forms.ChoiceField(
-            choices=EMPTY_CHOICE + ly_luan_choices,
-            required=True,
-            label="Lý luận chính trị",
-        )
+        self.fields["LyLuanChinhTri"].widget = forms.Select(choices=EMPTY_CHOICE + ly_luan_choices)
+        self.fields["LyLuanChinhTri"].required = True
         
         # NgoaiNgu: Chọn Không hoặc nhập
-        self.fields["NgoaiNgu"] = forms.CharField(
-            required=True,
-            label="Ngoại ngữ",
-            widget=forms.TextInput(
-                attrs={"placeholder": "VD: Đại học tiếng Anh, tiếng Pháp,..."}
-            ),
-        )
+        self.fields["NgoaiNgu"].widget.attrs.update({"placeholder": "VD: Đại học tiếng Anh, tiếng Pháp,..."})
+        self.fields["NgoaiNgu"].required = True
         
         # TinHoc: Chọn Không hoặc nhập
-        self.fields["TinHoc"] = forms.CharField(
-            required=True,
-            label="Tin học",
-            widget=forms.TextInput(
-                attrs={
-                    "placeholder": "VD: Tin học văn phòng, trình độ A/B/C,..."
-                }
-            ),
-        )
+        self.fields["TinHoc"].widget.attrs.update({"placeholder": "VD: Tin học văn phòng, trình độ A/B/C,..."})
+        self.fields["TinHoc"].required = True
         
         # TiengDTTS: Chọn từ danh sách dân tộc thiểu số hoặc Không (loại trừ Kinh)
         tieng_dtts_choices = [("Không", "Không")] + ETHNIC_GROUPS_NO_KINH
-        self.fields["TiengDTTS"] = forms.ChoiceField(
-            choices=EMPTY_CHOICE + tieng_dtts_choices,
-            required=True,
-            label="Tiếng dân tộc thiểu số",
-        )
+        self.fields["TiengDTTS"].widget = forms.Select(choices=EMPTY_CHOICE + tieng_dtts_choices)
+        self.fields["TiengDTTS"].required = True
 
-        # Theo nghiệp vụ hiện tại: tất cả trường bắt buộc, trừ Ghi chú.
-        optional_fields = {"GhiChu", "NgayVaoDang"}
+        # Theo nghiệp vụ hiện tại: tất cả trường bắt buộc, trừ Ghi chú và Huy hiệu.
+        optional_fields = {"GhiChu", "NgayVaoDang", "HuyHieuCaoNhat"}
         for field_name, field in self.fields.items():
             field.required = field_name not in optional_fields
 

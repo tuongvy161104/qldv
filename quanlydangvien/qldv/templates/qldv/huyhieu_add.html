@@ -1,0 +1,234 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Thêm hồ sơ Huy hiệu Đảng{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.page-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head p {
+		margin: 0.35rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.mode-switch {
+		display: inline-flex;
+		gap: 0.45rem;
+		padding: 0.28rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: color-mix(in oklab, var(--muted) 65%, white 35%);
+	}
+
+	.mode-btn {
+		appearance: none;
+		border: none;
+		background: transparent;
+		color: var(--muted-foreground);
+		padding: 0.42rem 0.85rem;
+		border-radius: 999px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.mode-btn.active {
+		background: #fff;
+		color: #7f0012;
+		box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
+	}
+
+	.panel {
+		display: none;
+	}
+
+	.panel.active {
+		display: block;
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 1.5rem;
+		background: #fff;
+	}
+
+	.form-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1rem;
+	}
+
+	.full-width {
+		grid-column: 1 / -1;
+	}
+
+	.form-field {
+		display: grid;
+		gap: 0.3rem;
+	}
+
+	.form-field label {
+		font-weight: 600;
+		font-size: 0.9rem;
+	}
+
+	.form-field input, .form-field select, .form-field textarea {
+		padding: 0.5rem;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 2px);
+	}
+
+	.btn-primary {
+		background: var(--destructive);
+		color: #fff;
+		border: none;
+		padding: 0.75rem 1.5rem;
+		border-radius: calc(var(--radius) - 2px);
+		font-weight: 600;
+		cursor: pointer;
+		margin-top: 1rem;
+	}
+
+	.help {
+		font-size: 0.85rem;
+		color: var(--muted-foreground);
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section class="page-head">
+		<div>
+			<h1>Thêm hồ sơ Huy hiệu Đảng</h1>
+			<p>Nhập hồ sơ cũ (legacy) hoặc import từ file CSV/Excel.</p>
+		</div>
+		<div class="head-actions">
+			<a href="{% url 'huyhieu' %}" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; background: #fff; color: var(--foreground); border: 1px solid var(--border);">← Quay lại xét duyệt</a>
+		</div>
+	</section>
+
+	<section>
+		<div class="mode-switch" role="tablist">
+			<button type="button" class="mode-btn active" data-mode="manual">Nhập thủ công</button>
+			<button type="button" class="mode-btn" data-mode="import">Nhập file</button>
+		</div>
+	</section>
+
+	<section class="card panel active" data-mode-panel="manual">
+		<h2>Nhập hồ sơ huy hiệu cũ</h2>
+		<p style="margin-bottom: 1.5rem; color: var(--muted-foreground);">Dùng để nhập các hồ sơ đã có từ trước khi đưa hệ thống vào hoạt động.</p>
+		
+		<form method="post" class="form-grid">
+			{% csrf_token %}
+			<input type="hidden" name="action_type" value="legacy_single">
+			
+			<div class="form-field">
+				<label for="{{ legacy_form.MaDangVien.id_for_label }}">Mã Đảng viên</label>
+				{{ legacy_form.MaDangVien }}
+				<span class="help">Để trống nếu dùng CCCD</span>
+			</div>
+
+			<div class="form-field">
+				<label for="{{ legacy_form.SoCCCD.id_for_label }}">Số CCCD</label>
+				{{ legacy_form.SoCCCD }}
+				<span class="help">Để trống nếu dùng Mã Đảng viên</span>
+			</div>
+
+			<div class="form-field">
+				<label for="{{ legacy_form.LoaiHuyHieu.id_for_label }}">Loại Huy hiệu</label>
+				{{ legacy_form.LoaiHuyHieu }}
+				<span class="help">VD: Huy hiệu 30 năm tuổi Đảng</span>
+			</div>
+
+			<div class="form-field">
+				<label for="{{ legacy_form.NgayDuDieuKien.id_for_label }}">Ngày đủ điều kiện</label>
+				{{ legacy_form.NgayDuDieuKien }}
+			</div>
+
+			<div class="form-field">
+				<label for="{{ legacy_form.DotTraoTang.id_for_label }}">Đợt trao tặng</label>
+				{{ legacy_form.DotTraoTang }}
+				<span class="help">VD: Đợt 02/09/2023</span>
+			</div>
+
+			<div class="form-field">
+				<label for="{{ legacy_form.TrangThai.id_for_label }}">Trạng thái</label>
+				{{ legacy_form.TrangThai }}
+				<span class="help">VD: Đã trao, Truy tặng</span>
+			</div>
+
+			<div class="form-field">
+				<label for="{{ legacy_form.SoQuyetDinh.id_for_label }}">Số quyết định</label>
+				{{ legacy_form.SoQuyetDinh }}
+			</div>
+
+			<div class="form-field">
+				<label for="{{ legacy_form.NgayTrao.id_for_label }}">Ngày trao</label>
+				{{ legacy_form.NgayTrao }}
+			</div>
+
+			<div class="form-field full-width">
+				<label for="{{ legacy_form.GhiChu.id_for_label }}">Ghi chú</label>
+				{{ legacy_form.GhiChu }}
+			</div>
+
+			<div class="full-width">
+				<button type="submit" class="btn-primary">Lưu hồ sơ</button>
+			</div>
+		</form>
+	</section>
+
+	<section class="card panel" data-mode-panel="import">
+		<h2>Nhập từ file CSV/Excel</h2>
+		<p style="margin-bottom: 1.5rem; color: var(--muted-foreground);">Tải lên danh sách hồ sơ huy hiệu. File cần có các cột: DangVienID hoặc MaDangVien hoặc SoCCCD, LoaiHuyHieu, NgayDuDieuKien, DotTraoTang, TrangThai, SoQuyetDinh, NgayTrao.</p>
+		
+		<form method="post" enctype="multipart/form-data">
+			{% csrf_token %}
+			<input type="hidden" name="action_type" value="legacy_import">
+			<div class="form-field">
+				<label for="{{ import_form.import_file.id_for_label }}">Chọn file</label>
+				{{ import_form.import_file }}
+			</div>
+			<button type="submit" class="btn-primary">Bắt đầu Import</button>
+		</form>
+	</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	(function () {
+		const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
+		const modePanels = Array.from(document.querySelectorAll(".panel"));
+
+		const setMode = function (mode) {
+			modeButtons.forEach(function (btn) {
+				const active = btn.dataset.mode === mode;
+				btn.classList.toggle("active", active);
+			});
+
+			modePanels.forEach(function (panel) {
+				panel.classList.toggle("active", panel.dataset.modePanel === mode);
+			});
+		};
+
+		modeButtons.forEach(function (btn) {
+			btn.addEventListener("click", function () {
+				setMode(btn.dataset.mode);
+			});
+		});
+	})();
+</script>
+{% endblock %}

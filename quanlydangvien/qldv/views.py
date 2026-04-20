@@ -241,8 +241,9 @@ def _import_dang_vien_data(uploaded_file, default_dang_bo=None):
         "diendangvien": "DienDangVien",
         "sodienthoai": "SoDienThoai",
         "dienthoai": "SoDienThoai",
-        "diachi": "DiaChi",
         "ghichu": "GhiChu",
+        "huyhieucaonhat": "HuyHieuCaoNhat",
+        "huyhieu": "HuyHieuCaoNhat",
     }
     rows = _parse_uploaded_rows(uploaded_file, header_aliases)
 
@@ -254,7 +255,6 @@ def _import_dang_vien_data(uploaded_file, default_dang_bo=None):
         "NgayVaoDang",
         "DienDangVien",
         "TrangThaiSinhHoat",
-        "DiaChi",
     ]
     created = 0
     errors = []
@@ -366,8 +366,8 @@ def _import_dang_vien_data(uploaded_file, default_dang_bo=None):
                 TrangThaiSinhHoat=trang_thai_sinh_hoat,
                 DienDangVien=dien_dang_vien,
                 SoDienThoai=so_dien_thoai or None,
-                DiaChi=_normalize_text(row.get("DiaChi")),
                 GhiChu=_normalize_text(row.get("GhiChu")) or None,
+                HuyHieuCaoNhat=_normalize_text(row.get("HuyHieuCaoNhat")) or None,
             )
             created += 1
 
@@ -1500,9 +1500,9 @@ def _export_dang_vien_csv(dangvien_list):
         "Trạng thái",
         "Diện Đảng viên",
         "Số điện thoại",
-        "Địa chỉ",
         "Ghi chú",
         "Số Huy hiệu",
+        "Huy hiệu cao nhất",
     ])
 
     for item in dangvien_list:
@@ -1535,9 +1535,9 @@ def _export_dang_vien_csv(dangvien_list):
             item.TrangThaiSinhHoat,
             item.DienDangVien,
             item.SoDienThoai,
-            item.DiaChi,
             item.GhiChu,
             item.so_huy_hieu,
+            item.HuyHieuCaoNhat or "",
         ])
 
     return response
@@ -1586,9 +1586,9 @@ def _export_dang_vien_excel(dangvien_list):
         "Trạng thái",
         "Diện Đảng viên",
         "Số điện thoại",
-        "Địa chỉ",
         "Ghi chú",
         "Số Huy hiệu",
+        "Huy hiệu cao nhất",
     ]
     worksheet.append(headers)
 
@@ -1622,9 +1622,9 @@ def _export_dang_vien_excel(dangvien_list):
             item.TrangThaiSinhHoat,
             item.DienDangVien,
             item.SoDienThoai,
-            item.DiaChi,
             item.GhiChu,
             item.so_huy_hieu,
+            item.HuyHieuCaoNhat or "",
         ])
 
     response = HttpResponse(
@@ -1933,6 +1933,126 @@ def dangvien_edit(request, dangvien_id):
     )
 
 
+def _base_huy_hieu_queryset():
+    return HuyHieuDang.objects.select_related("DangVienID", "DangVienID__ChiBoID").order_by("-NgayTrao")
+
+
+def _apply_huy_hieu_filters(queryset, query_params):
+    q = (query_params.get("q") or "").strip()
+    year = (query_params.get("year") or "").strip()
+    badge_year = (query_params.get("badge_year") or "").strip()
+    trang_thai = (query_params.get("trang_thai") or "").strip()
+
+    if q:
+        queryset = queryset.filter(
+            Q(DangVienID__HoTen__icontains=q) |
+            Q(DangVienID__MaDangVien__icontains=q) |
+            Q(DangVienID__SoCCCD__icontains=q)
+        )
+
+    if year and year.isdigit():
+        queryset = queryset.filter(NgayTrao__year=int(year))
+
+    if badge_year:
+        queryset = queryset.filter(LoaiHuyHieu__icontains=f"{badge_year} năm")
+
+    if trang_thai:
+        queryset = queryset.filter(TrangThai=trang_thai)
+
+    return queryset, {
+        "q": q,
+        "year": year,
+        "badge_year": badge_year,
+        "trang_thai": trang_thai,
+    }
+
+
+def _export_huy_hieu_csv(huyhieu_list):
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="huy_hieu_data.csv"'
+    response.write("\ufeff")
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "Họ tên",
+        "Mã ĐV",
+        "CCCD",
+        "Loại huy hiệu",
+        "Ngày đủ điều kiện",
+        "Đợt trao tặng",
+        "Trạng thái",
+        "Số quyết định",
+        "Ngày trao",
+        "Ghi chú",
+    ])
+
+    for item in huyhieu_list:
+        writer.writerow([
+            item.DangVienID.HoTen,
+            item.DangVienID.MaDangVien,
+            item.DangVienID.SoCCCD,
+            item.LoaiHuyHieu,
+            item.NgayDuDieuKien.strftime("%d/%m/%Y") if item.NgayDuDieuKien else "",
+            item.DotTraoTang,
+            item.TrangThai,
+            item.SoQuyetDinh,
+            item.NgayTrao.strftime("%d/%m/%Y") if item.NgayTrao else "",
+            item.GhiChu,
+        ])
+
+    return response
+
+
+def _export_huy_hieu_excel(huyhieu_list):
+    try:
+        from openpyxl import Workbook
+    except ImportError:
+        return HttpResponse(
+            "Thiếu thư viện openpyxl để xuất Excel. Vui lòng cài đặt openpyxl.",
+            status=500,
+            content_type="text/plain; charset=utf-8",
+        )
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "HuyHieu"
+
+    headers = [
+        "Họ tên",
+        "Mã ĐV",
+        "CCCD",
+        "Loại huy hiệu",
+        "Ngày đủ điều kiện",
+        "Đợt trao tặng",
+        "Trạng thái",
+        "Số quyết định",
+        "Ngày trao",
+        "Ghi chú",
+    ]
+    worksheet.append(headers)
+
+    for item in huyhieu_list:
+        worksheet.append([
+            item.DangVienID.HoTen,
+            item.DangVienID.MaDangVien,
+            item.DangVienID.SoCCCD,
+            item.LoaiHuyHieu,
+            item.NgayDuDieuKien.strftime("%d/%m/%Y") if item.NgayDuDieuKien else "",
+            item.DotTraoTang,
+            item.TrangThai,
+            item.SoQuyetDinh,
+            item.NgayTrao.strftime("%d/%m/%Y") if item.NgayTrao else "",
+            item.GhiChu,
+        ])
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="huy_hieu_data.xlsx"'
+    workbook.save(response)
+    return response
+
+
 def dangvien_delete(request, dangvien_id):
     if request.method != "POST":
         return redirect("dangvien")
@@ -1982,9 +2102,6 @@ def huyhieu(request):
 
     year_options = list(range(today.year, 1929, -1))
 
-    huy_hieu_legacy_form = HuyHieuLegacyForm()
-    huy_hieu_import_form = HuyHieuImportForm()
-
     def build_context():
         huyhieu_list = HuyHieuDang.objects.select_related("DangVienID").order_by("-NgayTrao")
         dangvien_list = DangVien.objects.select_related("ChiBoID", "DangBoID").order_by("HoTen")
@@ -1996,7 +2113,6 @@ def huyhieu(request):
         )
 
         return {
-            "huyhieu_list": huyhieu_list,
             "total_huyhieu": huyhieu_list.count(),
             "review_date": review_date,
             "selected_year": selected_year_int,
@@ -2008,75 +2124,9 @@ def huyhieu(request):
             "eligible_members": eligible_members,
             "total_eligible": len(eligible_members),
             "year_options": year_options,
-            "huy_hieu_legacy_form": huy_hieu_legacy_form,
-            "huy_hieu_import_form": huy_hieu_import_form,
         }
 
     if request.method == "POST":
-        action_type = request.POST.get("action_type")
-        if action_type == "legacy_single":
-            huy_hieu_legacy_form = HuyHieuLegacyForm(request.POST)
-            if huy_hieu_legacy_form.is_valid():
-                data = huy_hieu_legacy_form.cleaned_data
-                dang_vien = _resolve_dang_vien_for_huy_hieu(
-                    ma_dang_vien=data.get("MaDangVien"),
-                    so_cccd=data.get("SoCCCD"),
-                )
-                if not dang_vien:
-                    messages.error(request, "Không tìm thấy Đảng viên theo Mã Đảng viên hoặc CCCD.")
-                    return redirect(request.get_full_path())
-
-                duplicated = HuyHieuDang.objects.filter(
-                    DangVienID=dang_vien,
-                    LoaiHuyHieu=data["LoaiHuyHieu"],
-                    SoQuyetDinh=data["SoQuyetDinh"],
-                ).exists()
-                if duplicated:
-                    messages.warning(request, "Hồ sơ huy hiệu này đã tồn tại.")
-                    return redirect(request.get_full_path())
-
-                HuyHieuDang.objects.create(
-                    DangVienID=dang_vien,
-                    LoaiHuyHieu=data["LoaiHuyHieu"],
-                    NgayDuDieuKien=data["NgayDuDieuKien"],
-                    DotTraoTang=data["DotTraoTang"],
-                    TrangThai=data["TrangThai"],
-                    SoQuyetDinh=data["SoQuyetDinh"],
-                    NgayTrao=data["NgayTrao"],
-                    GhiChu=(data.get("GhiChu") or "").strip() or None,
-                )
-                messages.success(request, f"Đã lưu hồ sơ huy hiệu cũ cho {dang_vien.HoTen}.")
-                return redirect(request.get_full_path())
-
-            messages.error(request, "Dữ liệu nhập tay không hợp lệ. Vui lòng kiểm tra lại.")
-            return render(request, "qldv/huyhieu.html", build_context())
-
-        if action_type == "legacy_import":
-            huy_hieu_import_form = HuyHieuImportForm(request.POST, request.FILES)
-            if huy_hieu_import_form.is_valid():
-                try:
-                    created, errors = _import_huy_hieu_data(huy_hieu_import_form.cleaned_data["import_file"])
-                except Exception as exc:
-                    messages.error(request, f"Không thể import file huy hiệu: {exc}")
-                    return redirect(request.get_full_path())
-
-                if created:
-                    messages.success(request, f"Đã import {created} hồ sơ huy hiệu.")
-                if errors:
-                    skipped = len(errors)
-                    summary = f"Đã bỏ qua {skipped} dòng không hợp lệ."
-                    if created == 0:
-                        messages.error(request, f"Không import được hồ sơ nào. {summary}")
-                    else:
-                        messages.warning(request, summary)
-                    messages.warning(request, "\n".join(errors[:20]))
-                elif created == 0:
-                    messages.warning(request, "File import không có dữ liệu hợp lệ để tạo hồ sơ huy hiệu.")
-                return redirect(request.get_full_path())
-
-            messages.error(request, "File import không hợp lệ.")
-            return render(request, "qldv/huyhieu.html", build_context())
-
         dang_vien_id = request.POST.get("dang_vien_id")
         eligible_years_raw = request.POST.get("eligible_for_years")
         eligible_date_raw = request.POST.get("eligible_date")
@@ -2132,16 +2182,90 @@ def huyhieu(request):
         messages.success(request, f"Đã lưu huy hiệu cho {dang_vien.HoTen} ({trang_thai.lower()}).")
         return redirect(request.get_full_path())
 
-    huyhieu_list = HuyHieuDang.objects.select_related("DangVienID").order_by("-NgayTrao")
-    dangvien_list = DangVien.objects.select_related("ChiBoID", "DangBoID").order_by("HoTen")
-    eligible_members = get_eligible_members(
-        dangvien_list,
-        review_date,
-        selected_badge_year,
-        list(huyhieu_list),
+    return render(request, "qldv/huyhieu.html", build_context())
+
+
+def huyhieu_add(request):
+    if request.method == "POST":
+        action_type = request.POST.get("action_type")
+        if action_type == "legacy_single":
+            form = HuyHieuLegacyForm(request.POST)
+            if form.is_valid():
+                data = form.cleaned_data
+                dang_vien = _resolve_dang_vien_for_huy_hieu(
+                    ma_dang_vien=data.get("MaDangVien"),
+                    so_cccd=data.get("SoCCCD"),
+                )
+                if not dang_vien:
+                    messages.error(request, "Không tìm thấy Đảng viên.")
+                else:
+                    duplicated = HuyHieuDang.objects.filter(
+                        DangVienID=dang_vien,
+                        LoaiHuyHieu=data["LoaiHuyHieu"],
+                        SoQuyetDinh=data["SoQuyetDinh"],
+                    ).exists()
+                    if duplicated:
+                        messages.warning(request, "Hồ sơ huy hiệu này đã tồn tại.")
+                    else:
+                        HuyHieuDang.objects.create(
+                            DangVienID=dang_vien,
+                            LoaiHuyHieu=data["LoaiHuyHieu"],
+                            NgayDuDieuKien=data["NgayDuDieuKien"],
+                            DotTraoTang=data["DotTraoTang"],
+                            TrangThai=data["TrangThai"],
+                            SoQuyetDinh=data["SoQuyetDinh"],
+                            NgayTrao=data["NgayTrao"],
+                            GhiChu=(data.get("GhiChu") or "").strip() or None,
+                        )
+                        messages.success(request, f"Đã lưu hồ sơ cho {dang_vien.HoTen}.")
+                        return redirect("huyhieu_add")
+            else:
+                messages.error(request, "Dữ liệu không hợp lệ.")
+
+        elif action_type == "legacy_import":
+            form = HuyHieuImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                try:
+                    created, errors = _import_huy_hieu_data(form.cleaned_data["import_file"])
+                    if created:
+                        messages.success(request, f"Đã import {created} hồ sơ.")
+                    if errors:
+                        messages.warning(request, "\n".join(errors[:10]))
+                    if created:
+                        return redirect("huyhieu_add")
+                except Exception as exc:
+                    messages.error(request, f"Lỗi import: {exc}")
+
+    return render(
+        request,
+        "qldv/huyhieu_add.html",
+        {
+            "legacy_form": HuyHieuLegacyForm(),
+            "import_form": HuyHieuImportForm(),
+        },
     )
 
-    return render(request, "qldv/huyhieu.html", build_context())
+
+def huyhieu_data(request):
+    queryset = _base_huy_hieu_queryset()
+    filtered_queryset, active_filters = _apply_huy_hieu_filters(queryset, request.GET)
+    huyhieu_list = list(filtered_queryset)
+
+    download_format = (request.GET.get("download") or "").strip().lower()
+    if download_format == "csv":
+        return _export_huy_hieu_csv(huyhieu_list)
+    if download_format == "excel":
+        return _export_huy_hieu_excel(huyhieu_list)
+
+    context = {
+        "huyhieu_list": huyhieu_list,
+        "total_filtered": len(huyhieu_list),
+        "filters": active_filters,
+        "year_options": range(timezone.localdate().year, 1929, -1),
+        "badge_milestones": BADGE_MILESTONES,
+        "trang_thai_choices": ["Đã trao", "Truy tặng"],
+    }
+    return render(request, "qldv/huyhieu_data.html", context)
 
 
 def huyhieu_edit(request, huyhieu_id):

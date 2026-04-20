@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -689,13 +689,33 @@
 						<a class="nav-sublink" href="/dangvien/du-lieu/" data-nav-sub="dangvien-data">Xem/xuất dữ liệu Đảng viên</a>
 					</div>
 				</div>
-				<a class="nav-link" href="/huyhieu/">
-					<svg class="nav-link-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-						<circle cx="12" cy="8" r="4.5" />
-						<path d="M9.5 12.2L8 21l4-2.3 4 2.3-1.5-8.8" />
-					</svg>
-					<span class="nav-link-text">Huy hiệu Đảng</span>
-				</a>
+				<div class="nav-group" data-nav-group="huyhieu">
+					<div class="nav-group-head">
+						<a class="nav-link" href="/huyhieu/" data-parent-link="huyhieu">
+							<svg class="nav-link-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+								<circle cx="12" cy="8" r="4.5" />
+								<path d="M9.5 12.2L8 21l4-2.3 4 2.3-1.5-8.8" />
+							</svg>
+							<span class="nav-link-text">Huy hiệu Đảng</span>
+						</a>
+						<button
+							type="button"
+							class="nav-group-toggle"
+							data-nav-toggle="huyhieu"
+							aria-label="Ẩn/hiện mục con Huy hiệu"
+							aria-expanded="true"
+						>
+							<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+								<path d="M6 9l6 6 6-6" />
+							</svg>
+						</button>
+					</div>
+					<div class="nav-sublist">
+						<a class="nav-sublink" href="/huyhieu/" data-nav-sub="huyhieu-review">Xét duyệt Huy hiệu</a>
+						<a class="nav-sublink" href="/huyhieu/them-moi/" data-nav-sub="huyhieu-add">Nhập hồ sơ cũ</a>
+						<a class="nav-sublink" href="/huyhieu/du-lieu/" data-nav-sub="huyhieu-data">Xem/xuất dữ liệu</a>
+					</div>
+				</div>
 				{% endif %}
 
 				{% block sidebar_links %}{% endblock %}

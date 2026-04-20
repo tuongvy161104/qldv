@@ -1,0 +1,225 @@
+{% extends "qldv/base.html" %}
+
+{% block title %}Dữ liệu Huy hiệu Đảng{% endblock %}
+
+{% block extra_css %}
+<style>
+	.page {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.page-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head p {
+		margin: 0.35rem 0 0;
+		color: var(--muted-foreground);
+	}
+
+	.card {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.95rem;
+		background: #fff;
+	}
+
+	.filter-toolbar {
+		display: flex;
+		gap: 0.55rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.filter-toolbar input,
+	.filter-toolbar select {
+		height: 2.2rem;
+		padding: 0.25rem 0.55rem;
+		font-size: 0.9rem;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 2px);
+	}
+
+	.control-keyword {
+		flex: 1;
+		min-width: 200px;
+	}
+
+	.btn-filter {
+		background: var(--destructive);
+		color: #fff;
+		border: none;
+		height: 2.2rem;
+		padding: 0 1.2rem;
+		border-radius: calc(var(--radius) - 2px);
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.download-box {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 1rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--border);
+	}
+
+	.table-wrap {
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: #fff;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 1200px;
+	}
+
+	th, td {
+		padding: 0.75rem;
+		text-align: left;
+		border-bottom: 1px solid var(--border);
+	}
+
+	thead {
+		background: color-mix(in oklab, var(--muted) 70%, white 30%);
+	}
+
+	.actions-cell {
+		display: flex;
+		gap: 0.45rem;
+	}
+
+	.btn-action {
+		padding: 0.3rem 0.6rem;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 3px);
+		text-decoration: none;
+		color: var(--foreground);
+		font-size: 0.85rem;
+		background: #fff;
+	}
+
+	.btn-action.btn-danger {
+		color: #9f1239;
+		border-color: #fecaca;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+	<section class="page-head">
+		<div>
+			<h1>Dữ liệu Huy hiệu Đảng</h1>
+			<p>Xem, tìm kiếm và xuất danh sách các Đảng viên đã nhận Huy hiệu Đảng.</p>
+		</div>
+		<div class="head-actions">
+			<a href="{% url 'huyhieu' %}" class="btn-action">← Quay lại xét duyệt</a>
+		</div>
+	</section>
+
+	<section class="card">
+		<form method="get" class="filter-toolbar">
+			<input type="text" name="q" value="{{ filters.q }}" placeholder="Từ khóa: Họ tên / Mã ĐV / CCCD" class="control-keyword">
+			
+			<select name="year">
+				<option value="">Năm trao (Tất cả)</option>
+				{% for year in year_options %}
+				<option value="{{ year }}" {% if filters.year == year|stringformat:"i" %}selected{% endif %}>Năm {{ year }}</option>
+				{% endfor %}
+			</select>
+
+			<select name="badge_year">
+				<option value="">Mốc huy hiệu (Tất cả)</option>
+				{% for milestone in badge_milestones %}
+				<option value="{{ milestone }}" {% if filters.badge_year == milestone|stringformat:"i" %}selected{% endif %}>{{ milestone }} năm</option>
+				{% endfor %}
+			</select>
+
+			<select name="trang_thai">
+				<option value="">Trạng thái (Tất cả)</option>
+				{% for choice in trang_thai_choices %}
+				<option value="{{ choice }}" {% if filters.trang_thai == choice %}selected{% endif %}>{{ choice }}</option>
+				{% endfor %}
+			</select>
+
+			<button type="submit" class="btn-filter">Lọc dữ liệu</button>
+			<a href="{% url 'huyhieu_data' %}" class="btn-action" style="height: 2.2rem; display: flex; align-items: center;">Xóa bộ lọc</a>
+		</form>
+
+		<form method="get" class="download-box">
+			<input type="hidden" name="q" value="{{ filters.q }}">
+			<input type="hidden" name="year" value="{{ filters.year }}">
+			<input type="hidden" name="badge_year" value="{{ filters.badge_year }}">
+			<input type="hidden" name="trang_thai" value="{{ filters.trang_thai }}">
+			
+			<label for="download">Xuất file:</label>
+			<select id="download" name="download">
+				<option value="csv">CSV</option>
+				<option value="excel">Excel</option>
+			</select>
+			<button type="submit" class="btn-action">Download</button>
+		</form>
+	</section>
+
+	<section class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					<th>STT</th>
+					<th>Họ và tên</th>
+					<th>Mã ĐV</th>
+					<th>Loại Huy hiệu</th>
+					<th>Ngày đủ ĐK</th>
+					<th>Đợt trao tặng</th>
+					<th>Trạng thái</th>
+					<th>Số quyết định</th>
+					<th>Ngày trao</th>
+					<th>Thao tác</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for item in huyhieu_list %}
+				<tr>
+					<td>{{ forloop.counter }}</td>
+					<td><b>{{ item.DangVienID.HoTen }}</b></td>
+					<td>{{ item.DangVienID.MaDangVien }}</td>
+					<td>{{ item.LoaiHuyHieu }}</td>
+					<td>{{ item.NgayDuDieuKien|date:"d/m/Y" }}</td>
+					<td>{{ item.DotTraoTang }}</td>
+					<td>
+						<span class="badge" style="background: {% if item.TrangThai == 'Truy tặng' %}#fef2f2; color: #991b1b; border: 1px solid #fecaca{% else %}#f0fdf4; color: #166534; border: 1px solid #bbf7d0{% endif %}; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.8rem;">
+							{{ item.TrangThai }}
+						</span>
+					</td>
+					<td>{{ item.SoQuyetDinh }}</td>
+					<td>{{ item.NgayTrao|date:"d/m/Y" }}</td>
+					<td>
+						<div class="actions-cell">
+							<a href="{% url 'huyhieu_edit' item.HuyHieuID %}" class="btn-action">Sửa</a>
+							<form method="post" action="{% url 'huyhieu_delete' item.HuyHieuID %}" onsubmit="return confirm('Xóa hồ sơ này?');" style="display:inline;">
+								{% csrf_token %}
+								<button type="submit" class="btn-action btn-danger">Xóa</button>
+							</form>
+						</div>
+					</td>
+				</tr>
+				{% empty %}
+				<tr>
+					<td colspan="10" style="text-align: center; padding: 2rem;">Không tìm thấy dữ liệu phù hợp.</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</section>
+</div>
+{% endblock %}

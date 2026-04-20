@@ -6,81 +6,149 @@
 <style>
 	.page {
 		display: grid;
-		gap: 1rem;
+		gap: 1.2rem;
 	}
+
+	.page-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.page-head h1 { margin-bottom: 0.2rem; }
+	.page-head p { color: var(--muted-foreground); margin: 0; }
 
 	.card {
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		padding: 1rem;
-		background: color-mix(in oklab, var(--card) 95%, white 5%);
+		padding: 1.5rem;
+		background: #fff;
+		box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 	}
 
 	.form-grid {
 		display: grid;
-		gap: 0.7rem;
+		gap: 1.5rem;
+	}
+
+	.member-form-section {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.member-form-section + .member-form-section {
+		padding-top: 1.5rem;
+		margin-top: 0.5rem;
+		border-top: 1px solid var(--border);
+	}
+
+	.member-form-section h3 {
+		margin: 0;
+		font-size: 1rem;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: #7f0012;
+		font-weight: 700;
 	}
 
 	.member-fields {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.7rem;
+		gap: 1rem;
+	}
+
+	.full-width {
+		grid-column: 1 / -1;
 	}
 
 	.form-field {
 		display: grid;
-		gap: 0.3rem;
+		gap: 0.35rem;
+	}
+
+	.form-field label {
+		font-weight: 600;
+		font-size: 0.9rem;
+		color: #475569;
+	}
+
+	.form-field input, .form-field select, .form-field textarea {
+		padding: 0.6rem 0.8rem;
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) - 2px);
+		background: #f8fafc;
+		transition: all 0.2s;
+	}
+
+	.form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+		background: #fff;
+		border-color: var(--destructive);
+		box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+		outline: none;
+	}
+
+	.form-field.has-error label {
+		color: #dc2626;
+	}
+
+	.form-field.has-error input, .form-field.has-error select, .form-field.has-error textarea {
+		border-color: #dc2626;
+		background: #fff1f2;
 	}
 
 	.help {
 		font-size: 0.84rem;
-		color: var(--muted-foreground);
+		color: #dc2626;
+		margin-top: 0.2rem;
 	}
 
 	.alert {
-		padding: 0.78rem 0.85rem;
-		border: 1px solid var(--border);
-		border-radius: calc(var(--radius) - 2px);
-		background: linear-gradient(120deg, color-mix(in oklab, var(--muted) 66%, white 34%), #ffffff);
-		white-space: pre-line;
-	}
-
-	.form-field.has-error label {
-		color: #b91c1c;
-		font-weight: 600;
-	}
-
-	.form-field.has-error input,
-	.form-field.has-error select,
-	.form-field.has-error textarea {
-		border-color: #dc2626;
+		padding: 1rem;
+		border: 1px solid #fecaca;
+		border-radius: var(--radius);
 		background: #fef2f2;
-		box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.18);
+		color: #991b1b;
+		margin-bottom: 1rem;
 	}
 
 	.action-row {
 		display: flex;
-		gap: 0.6rem;
-		align-items: center;
-		margin-top: 0.4rem;
+		gap: 1rem;
+		margin-top: 1rem;
 	}
 
 	.btn-primary {
-		border: 1px solid color-mix(in oklab, var(--destructive) 45%, transparent);
-		background: color-mix(in oklab, var(--destructive) 75%, #9f1239 25%);
+		background: var(--destructive);
 		color: #fff;
-		padding: 0.6rem 0.95rem;
-		border-radius: calc(var(--radius) - 2px);
+		border: none;
+		padding: 0.75rem 1.5rem;
+		border-radius: var(--radius);
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.btn-primary:hover {
+		opacity: 0.9;
+		transform: translateY(-1px);
 	}
 
 	.btn-secondary {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		border: 1px solid var(--border);
-		border-radius: calc(var(--radius) - 2px);
-		padding: 0.56rem 0.9rem;
 		background: #fff;
+		color: var(--foreground);
+		border: 1px solid var(--border);
+		padding: 0.75rem 1.5rem;
+		border-radius: var(--radius);
+		font-weight: 600;
+		text-decoration: none;
+		text-align: center;
+		transition: all 0.2s;
+	}
+
+	.btn-secondary:hover {
+		background: #f8fafc;
 	}
 
 	@media (max-width: 900px) {
@@ -93,36 +161,173 @@
 
 {% block content %}
 <div class="page">
-	<section>
-		<h1>Sửa Đảng viên</h1>
-		<p>Đang cập nhật hồ sơ: <b>{{ dangvien_item.HoTen }}</b> ({{ dangvien_item.MaDangVien }})</p>
+	<section class="page-head">
+		<div>
+			<h1>Sửa hồ sơ Đảng viên</h1>
+			<p>Đang cập nhật: <b style="color: #7f0012;">{{ dangvien_item.HoTen }}</b> ({{ dangvien_item.MaDangVien }})</p>
+		</div>
 	</section>
 
 	<section class="card">
 		<form method="post" class="form-grid">
 			{% csrf_token %}
+
 			{% if form.errors %}
-			<div class="alert">Biểu mẫu chưa hợp lệ. Vui lòng kiểm tra các trường đang báo lỗi bên dưới.</div>
-			{% endif %}
-			{% if form.non_field_errors %}
-			<div class="help">{{ form.non_field_errors|striptags }}</div>
-			{% endif %}
-			<div class="member-fields">
-				{% for field in form %}
-				<div class="form-field{% if field.errors %} has-error{% endif %}">
-					<label for="{{ field.id_for_label }}">{{ field.label }}</label>
-					{{ field }}
-					{% if field.errors %}
-					<div class="help">{{ field.errors|striptags }}</div>
-					{% endif %}
-				</div>
-				{% endfor %}
+			<div class="alert">
+				<b>Có lỗi xảy ra:</b> Biểu mẫu chưa hợp lệ. Vui lòng kiểm tra các trường đang báo lỗi bên dưới.
 			</div>
+			{% endif %}
+
+			<div class="member-form-section">
+				<h3>Thông tin cơ bản</h3>
+				<div class="member-fields">
+					<div class="form-field{% if form.SoCCCD.errors %} has-error{% endif %}">
+						<label for="{{ form.SoCCCD.id_for_label }}">{{ form.SoCCCD.label }}</label>
+						{{ form.SoCCCD }}
+						{% if form.SoCCCD.errors %}<div class="help">{{ form.SoCCCD.errors|striptags }}</div>{% endif %}
+					</div>
+					<div class="form-field{% if form.HoTen.errors %} has-error{% endif %}">
+						<label for="{{ form.HoTen.id_for_label }}">{{ form.HoTen.label }}</label>
+						{{ form.HoTen }}
+						{% if form.HoTen.errors %}<div class="help">{{ form.HoTen.errors|striptags }}</div>{% endif %}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.BiDanh.id_for_label }}">{{ form.BiDanh.label }}</label>
+						{{ form.BiDanh }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.GioiTinh.id_for_label }}">{{ form.GioiTinh.label }}</label>
+						{{ form.GioiTinh }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.NgaySinh.id_for_label }}">{{ form.NgaySinh.label }}</label>
+						{{ form.NgaySinh }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.QueQuan.id_for_label }}">{{ form.QueQuan.label }}</label>
+						{{ form.QueQuan }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.DanToc.id_for_label }}">{{ form.DanToc.label }}</label>
+						{{ form.DanToc }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.NoiThuongTru.id_for_label }}">{{ form.NoiThuongTru.label }}</label>
+						{{ form.NoiThuongTru }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.NoiTamTru.id_for_label }}">{{ form.NoiTamTru.label }}</label>
+						{{ form.NoiTamTru }}
+					</div>
+				</div>
+			</div>
+
+			<div class="member-form-section">
+				<h3>Trình độ và chuyên môn</h3>
+				<div class="member-fields">
+					<div class="form-field">
+						<label for="{{ form.NgheNghiep.id_for_label }}">{{ form.NgheNghiep.label }}</label>
+						{{ form.NgheNghiep }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.GDPT.id_for_label }}">{{ form.GDPT.label }}</label>
+						{{ form.GDPT }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.GDNN.id_for_label }}">{{ form.GDNN.label }}</label>
+						{{ form.GDNN }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.GDDH.id_for_label }}">{{ form.GDDH.label }}</label>
+						{{ form.GDDH }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.GDSĐH.id_for_label }}">{{ form.GDSĐH.label }}</label>
+						{{ form.GDSĐH }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.HocHam.id_for_label }}">{{ form.HocHam.label }}</label>
+						{{ form.HocHam }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.LyLuanChinhTri.id_for_label }}">{{ form.LyLuanChinhTri.label }}</label>
+						{{ form.LyLuanChinhTri }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.NgoaiNgu.id_for_label }}">{{ form.NgoaiNgu.label }}</label>
+						{{ form.NgoaiNgu }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.TinHoc.id_for_label }}">{{ form.TinHoc.label }}</label>
+						{{ form.TinHoc }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.TiengDTTS.id_for_label }}">{{ form.TiengDTTS.label }}</label>
+						{{ form.TiengDTTS }}
+					</div>
+				</div>
+			</div>
+
+			<div class="member-form-section">
+				<h3>Thông tin Đảng và liên hệ</h3>
+				<div class="member-fields">
+					<div class="form-field">
+						<label for="{{ form.NgayVaoDang.id_for_label }}">{{ form.NgayVaoDang.label }}</label>
+						{{ form.NgayVaoDang }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.ChiBoID.id_for_label }}">{{ form.ChiBoID.label }}</label>
+						{{ form.ChiBoID }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.DienDangVien.id_for_label }}">{{ form.DienDangVien.label }}</label>
+						{{ form.DienDangVien }}
+					</div>
+					<div class="form-field">
+						<label for="{{ form.TrangThaiSinhHoat.id_for_label }}">{{ form.TrangThaiSinhHoat.label }}</label>
+						{{ form.TrangThaiSinhHoat }}
+					</div>
+					<div class="form-field{% if form.SoDienThoai.errors %} has-error{% endif %}">
+						<label for="{{ form.SoDienThoai.id_for_label }}">{{ form.SoDienThoai.label }}</label>
+						{{ form.SoDienThoai }}
+						{% if form.SoDienThoai.errors %}<div class="help">{{ form.SoDienThoai.errors|striptags }}</div>{% endif %}
+					</div>
+					<div class="form-field full-width">
+						<label for="{{ form.HuyHieuCaoNhat.id_for_label }}">{{ form.HuyHieuCaoNhat.label }}</label>
+						{{ form.HuyHieuCaoNhat }}
+					</div>
+					<div class="form-field full-width">
+						<label for="{{ form.GhiChu.id_for_label }}">{{ form.GhiChu.label }}</label>
+						{{ form.GhiChu }}
+					</div>
+				</div>
+			</div>
+
 			<div class="action-row">
 				<button type="submit" class="btn-primary">Lưu thay đổi</button>
-				<a href="{% url 'dangvien' %}" class="btn-secondary">Hủy</a>
+				<a href="{% url 'dangvien_data' %}" class="btn-secondary">Hủy bỏ</a>
 			</div>
 		</form>
 	</section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	(function () {
+		const soCCCDInput = document.getElementById("id_SoCCCD");
+		if (soCCCDInput) {
+			soCCCDInput.addEventListener("input", function () {
+				this.value = this.value.replace(/[^0-9]/g, "").slice(0, 12);
+			});
+		}
+
+		const soDienThoaiInput = document.getElementById("id_SoDienThoai");
+		if (soDienThoaiInput) {
+			soDienThoaiInput.addEventListener("input", function () {
+				this.value = this.value.replace(/[^0-9]/g, "").slice(0, 10);
+			});
+		}
+	})();
+</script>
 {% endblock %}

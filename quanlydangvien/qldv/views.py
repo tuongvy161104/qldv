@@ -154,7 +154,7 @@ def _import_chi_bo_data(uploaded_file, default_dang_bo=None):
         ChiBo.normalized_name_key(obj.TenChiBo): obj.TenChiBo
         for obj in ChiBo.objects.all()
     }
-    
+
     valid_dia_ban = ["Nại Hiên Đông", "Mân Thái", "Thọ Quang"]
 
     with transaction.atomic():
@@ -173,7 +173,7 @@ def _import_chi_bo_data(uploaded_file, default_dang_bo=None):
                     f"Dòng {index}: Chi bộ '{ten_chi_bo}' bị trùng với '{existing_chi_bo_by_key[ten_chi_bo_key]}'."
                 )
                 continue
-            
+
             if dia_ban not in valid_dia_ban:
                 errors.append(f"Dòng {index}: DiaBan '{dia_ban}' không hợp lệ. Phải là: {', '.join(valid_dia_ban)}")
                 continue
@@ -232,7 +232,7 @@ def _import_dang_vien_data(uploaded_file, default_dang_bo=None):
         "gdnn": "GDNN",
         "gddh": "GDDH",
         "gdsđh": "GDSĐH",
-        "gddhsdh": "GDDH",  # backward compatibility
+        "gddhsdh": "GDDH",
         "hocham": "HocHam",
         "lyluanchinhtri": "LyLuanChinhTri",
         "ngoaingu": "NgoaiNgu",
@@ -275,12 +275,11 @@ def _import_dang_vien_data(uploaded_file, default_dang_bo=None):
                 continue
 
             so_cccd = _normalize_text(row.get("SoCCCD"))
-            
-            # Validate SoCCCD is exactly 12 digits
+
             if not so_cccd.isdigit() or len(so_cccd) != 12:
                 errors.append(f"Dòng {index}: Số CCCD phải là 12 chữ số ('{so_cccd}').")
                 continue
-            
+
             if DangVien.objects.filter(SoCCCD=so_cccd).exists():
                 errors.append(f"Dòng {index}: Số CCCD '{so_cccd}' đã tồn tại.")
                 continue
@@ -504,33 +503,6 @@ def _base_chi_bo_queryset():
     ).order_by("TenChiBo")
 
 
-def _get_chibo_overview_rows_from_dataset():
-    dataset_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "danh_sach_chi_bo.csv",
-    )
-
-    if not os.path.exists(dataset_path):
-        return []
-
-    rows = []
-    with open(dataset_path, "r", encoding="utf-8-sig", newline="") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            ten_chi_bo = _normalize_text(row.get("TenChiBo"))
-            dia_ban = _normalize_text(row.get("DiaBan"))
-            trang_thai = _normalize_text(row.get("TrangThai"))
-            if ten_chi_bo:
-                rows.append(
-                    {
-                        "TenChiBo": ten_chi_bo,
-                        "DiaBan": dia_ban,
-                        "TrangThai": trang_thai,
-                    }
-                )
-    return rows
-
-
 def _apply_chi_bo_filters(queryset, query_params):
     q = (query_params.get("q") or "").strip()
     dia_ban = (query_params.get("dia_ban") or "").strip()
@@ -613,29 +585,58 @@ def _export_chi_bo_excel(chibo_list):
 
 
 def chibo(request):
-    dataset_rows = _get_chibo_overview_rows_from_dataset()
+    # ====================== LẤY DỮ LIỆU CƠ BẢN ======================
+    source_queryset = _base_chi_bo_queryset()
+    source_rows = [
+        {
+            "ChiBoID": item.ChiBoID,
+            "TenChiBo": item.TenChiBo,
+            "DiaBan": item.DiaBan,
+            "TrangThai": item.TrangThai,
+            "so_dang_vien": item.so_dang_vien,
+        }
+        for item in source_queryset
+    ]
 
-    if dataset_rows:
-        source_rows = dataset_rows
-    else:
-        source_rows = [
-            {
-                "TenChiBo": item.TenChiBo,
-                "DiaBan": item.DiaBan,
-                "TrangThai": item.TrangThai,
-            }
-            for item in _base_chi_bo_queryset()
+    total_chibo_all = len(source_rows)
+
+    # ====================== XỬ LÝ BỘ LỌC ======================
+    selected_dia_ban = (request.GET.get("dia_ban") or "").strip()
+    selected_trang_thai = (request.GET.get("trang_thai") or "").strip()
+    selected_loai = (request.GET.get("loai") or "").strip()   # residential, agency, school
+
+    filtered_rows = source_rows[:]
+
+    if selected_dia_ban:
+        filtered_rows = [row for row in filtered_rows if row["DiaBan"] == selected_dia_ban]
+
+    if selected_trang_thai:
+        filtered_rows = [
+            row for row in filtered_rows 
+            if _normalize_text(row["TrangThai"]).lower() == _normalize_text(selected_trang_thai).lower()
         ]
 
-    total_chibo = len(source_rows)
+    if selected_loai:
+        def classify(name):
+            text = (name or "").strip().lower()
+            if any(k in text for k in ["trường", "thcs", "tiểu học", "mầm non", "thpt", "hoc"]):
+                return "school"
+            if any(k in text for k in ["cơ quan", "ubnd", "công an", "y tế", "đơn vị", "chi cục", "ban "]):
+                return "agency"
+            return "residential"
+        
+        filtered_rows = [row for row in filtered_rows if classify(row["TenChiBo"]) == selected_loai]
 
-    def _is_active_status(value):
-        normalized = _normalize_text(value).lower()
-        return normalized in {"hoạt động", "đang hoạt động", "dang hoat dong", "hoat dong"}
+    # ====================== TÍNH TOÁN THỐNG KÊ SAU KHI LỌC ======================
+    total_chibo = len(filtered_rows)
 
-    active_chibo = sum(1 for row in source_rows if _is_active_status(row.get("TrangThai")))
+    def _is_active(value):
+        return _normalize_text(value).lower() in {"hoạt động", "đang hoạt động", "dang hoat dong", "hoat dong"}
+
+    active_chibo = sum(1 for row in filtered_rows if _is_active(row["TrangThai"]))
     inactive_chibo = max(0, total_chibo - active_chibo)
 
+    # Phân bổ theo địa bàn
     dia_ban_order = ["Thọ Quang", "Mân Thái", "Nại Hiên Đông"]
     dia_ban_colors = {
         "Thọ Quang": "#be123c",
@@ -645,106 +646,95 @@ def chibo(request):
 
     by_dia_ban = []
     for dia_ban in dia_ban_order:
-        area_rows = [row for row in source_rows if _normalize_text(row.get("DiaBan")) == dia_ban]
+        area_rows = [r for r in filtered_rows if r["DiaBan"] == dia_ban]
         count = len(area_rows)
-        active_count = sum(1 for row in area_rows if _is_active_status(row.get("TrangThai")))
+        active_count = sum(1 for r in area_rows if _is_active(r["TrangThai"]))
         inactive_count = max(0, count - active_count)
         percent = round((count * 100 / total_chibo), 1) if total_chibo else 0
-        by_dia_ban.append(
-            {
-                "name": dia_ban,
-                "count": count,
-                "active_count": active_count,
-                "inactive_count": inactive_count,
-                "percent": percent,
-                "color": dia_ban_colors.get(dia_ban, "#64748b"),
-            }
-        )
 
+        by_dia_ban.append({
+            "name": dia_ban,
+            "count": count,
+            "active_count": active_count,
+            "inactive_count": inactive_count,
+            "percent": percent,
+            "color": dia_ban_colors.get(dia_ban, "#64748b"),
+        })
+
+    # Donut style
     start = 0.0
     donut_parts = []
     for item in by_dia_ban:
-        end = start + item["percent"]
         if item["count"] > 0:
+            end = start + item["percent"]
             donut_parts.append(f"{item['color']} {start:.4f}% {end:.4f}%")
             start = end
-    if start < 100:
+    if start < 100 and total_chibo > 0:
         donut_parts.append(f"#e2e8f0 {start:.4f}% 100%")
-    dia_ban_donut_style = f"conic-gradient({', '.join(donut_parts)})"
+    dia_ban_donut_style = f"conic-gradient({', '.join(donut_parts)})" if donut_parts else "conic-gradient(#cbd5e1 0 100%)"
 
+    # Bar ratio
     max_area_count = max((item["count"] for item in by_dia_ban), default=0)
     for item in by_dia_ban:
         item["bar_ratio"] = (item["count"] * 100 / max_area_count) if max_area_count else 0
 
-    def _classify_chi_bo_category(name):
-        text = (name or "").strip().lower()
-        if any(keyword in text for keyword in ["trường", "thcs", "tiểu học", "mầm non", "thpt", "hoc"]):
-            return "school"
-        if any(keyword in text for keyword in ["cơ quan", "ubnd", "công an", "y tế", "đơn vị", "chi cục", "ban "]):
-            return "agency"
-        return "residential"
-
+    # Phân loại Chi bộ (residential, agency, school)
     category_map = {
-        "residential": {
-            "label": "Khu dân cư",
-            "icon": "🏠",
-            "color": "#be123c",
-        },
-        "agency": {
-            "label": "Cơ quan / Đơn vị",
-            "icon": "🏛️",
-            "color": "#9f1239",
-        },
-        "school": {
-            "label": "Trường học",
-            "icon": "🏫",
-            "color": "#b45309",
-        },
+        "residential": {"label": "Khu dân cư", "icon": "🏠", "color": "#be123c"},
+        "agency": {"label": "Cơ quan / Đơn vị", "icon": "🏛️", "color": "#9f1239"},
+        "school": {"label": "Trường học", "icon": "🏫", "color": "#b45309"},
     }
 
     category_counts = {"residential": 0, "agency": 0, "school": 0}
     category_names = {"residential": [], "agency": [], "school": []}
-    for item in source_rows:
-        key = _classify_chi_bo_category(item.get("TenChiBo"))
+
+    for item in filtered_rows:
+        key = _classify_chi_bo_category(item["TenChiBo"])   # hàm đã có sẵn trong code cũ
         category_counts[key] += 1
-        category_names[key].append(item.get("TenChiBo"))
+        category_names[key].append(item["TenChiBo"])
 
     category_blocks = []
     for key in ["residential", "agency", "school"]:
         cfg = category_map[key]
         count = category_counts[key]
         percent = round((count * 100 / total_chibo), 1) if total_chibo else 0
-        sample_names = category_names[key][:3]
-        description = ", ".join(sample_names) if sample_names else "Chưa có dữ liệu"
-        category_blocks.append(
-            {
-                "label": cfg["label"],
-                "icon": cfg["icon"],
-                "count": count,
-                "percent": percent,
-                "color": cfg["color"],
-                "description": description,
-            }
-        )
+        sample = ", ".join(category_names[key][:3]) or "Chưa có dữ liệu"
+        category_blocks.append({
+            "label": cfg["label"],
+            "icon": cfg["icon"],
+            "count": count,
+            "percent": percent,
+            "color": cfg["color"],
+            "description": sample,
+        })
 
     residential_count = category_counts["residential"]
     active_percent = round((active_chibo * 100 / total_chibo), 1) if total_chibo else 0
     inactive_percent = round((inactive_chibo * 100 / total_chibo), 1) if total_chibo else 0
     residential_percent = round((residential_count * 100 / total_chibo), 1) if total_chibo else 0
 
+    # ====================== CONTEXT ======================
     context = {
         "total_chibo": total_chibo,
         "active_chibo": active_chibo,
         "inactive_chibo": inactive_chibo,
-        "total_dangvien": DangVien.objects.count(),
-        "by_dia_ban": by_dia_ban,
-        "dia_ban_donut_style": dia_ban_donut_style,
-        "category_blocks": category_blocks,
         "residential_count": residential_count,
         "active_percent": active_percent,
         "inactive_percent": inactive_percent,
         "residential_percent": residential_percent,
+
+        "by_dia_ban": by_dia_ban,
+        "dia_ban_donut_style": dia_ban_donut_style,
+        "category_blocks": category_blocks,
+
+        # Dùng cho form lọc
+        "selected_dia_ban": selected_dia_ban,
+        "selected_trang_thai": selected_trang_thai,
+        "selected_loai": selected_loai,
+        "dia_ban_options": sorted({row["DiaBan"] for row in source_rows if row["DiaBan"]}),
+        "trang_thai_options": sorted({row["TrangThai"] for row in source_rows if row["TrangThai"]}),
     }
+
     return render(request, "qldv/chibo.html", context)
 
 
@@ -1063,17 +1053,14 @@ def _get_dang_vien_overview_context(reference_date=None):
     def _build_donut_style(slices):
         if not slices:
             return "conic-gradient(#cbd5e1 0 100%)"
-
         start = 0.0
         parts = []
         for item in slices:
             end = start + item["percent"]
             parts.append(f"{item['color']} {start:.4f}% {end:.4f}%")
             start = end
-
         if start < 100:
             parts.append(f"#e2e8f0 {start:.4f}% 100%")
-
         return f"conic-gradient({', '.join(parts)})"
 
     def _build_filter_key(prefix, label):
@@ -1091,10 +1078,8 @@ def _get_dang_vien_overview_context(reference_date=None):
     def _build_top3_segments(raw_counts, colors, key_prefix):
         entries = [(label, count) for label, count in raw_counts.items() if count > 0]
         entries.sort(key=lambda item: item[1], reverse=True)
-
         if len(entries) > 3:
             entries = entries[:2] + [("Khác", sum(count for _, count in entries[2:]))]
-
         total_entries = sum(count for _, count in entries)
         segments = []
         for idx, (label, count) in enumerate(entries):
@@ -1111,7 +1096,6 @@ def _get_dang_vien_overview_context(reference_date=None):
                     "color": color,
                 }
             )
-
         return segments
 
     age_group_labels = ["Dưới 30", "30-40", "40-50", "50-60", "60-70", "Trên 70"]
@@ -1121,16 +1105,11 @@ def _get_dang_vien_overview_context(reference_date=None):
         if not member.NgaySinh:
             return None
         age = max(0, current_year - member.NgaySinh.year)
-        if age < 30:
-            return 0
-        if age < 40:
-            return 1
-        if age < 50:
-            return 2
-        if age < 60:
-            return 3
-        if age < 70:
-            return 4
+        if age < 30: return 0
+        if age < 40: return 1
+        if age < 50: return 2
+        if age < 60: return 3
+        if age < 70: return 4
         return 5
 
     def _build_age_distribution_for_members(members):
@@ -1139,40 +1118,23 @@ def _get_dang_vien_overview_context(reference_date=None):
             idx = _age_bucket_index(member)
             if idx is not None:
                 counts[idx] += 1
-
         max_count = max(counts) if counts else 0
         result = []
         for idx, (label, count) in enumerate(zip(age_group_labels, counts)):
             ratio = (count * 100 / max_count) if max_count else 0
-            if count > 0:
-                height_px = max(8, int(ratio * 2.0))
-            else:
-                height_px = 0
-            result.append(
-                {
-                    "key": f"age_{idx}",
-                    "label": label,
-                    "count": count,
-                    "ratio": ratio,
-                    "height_px": height_px,
-                }
-            )
+            height_px = max(8, int(ratio * 2.0)) if count > 0 else 0
+            result.append({"key": f"age_{idx}", "label": label, "count": count, "ratio": ratio, "height_px": height_px})
         return result
 
     def _party_age_bucket_index(member):
         if not member.NgayVaoDang:
             return None
         party_age = max(0, current_year - member.NgayVaoDang.year)
-        if party_age < 5:
-            return 0
-        if party_age < 10:
-            return 1
-        if party_age < 20:
-            return 2
-        if party_age < 30:
-            return 3
-        if party_age < 50:
-            return 4
+        if party_age < 5: return 0
+        if party_age < 10: return 1
+        if party_age < 20: return 2
+        if party_age < 30: return 3
+        if party_age < 50: return 4
         return 5
 
     def _build_party_age_distribution_for_members(members):
@@ -1181,24 +1143,12 @@ def _get_dang_vien_overview_context(reference_date=None):
             idx = _party_age_bucket_index(member)
             if idx is not None:
                 counts[idx] += 1
-
         max_count = max(counts) if counts else 0
         result = []
         for idx, (label, count) in enumerate(zip(party_age_group_labels, counts)):
             ratio = (count * 100 / max_count) if max_count else 0
-            if count > 0:
-                height_px = max(8, int(ratio * 2.0))
-            else:
-                height_px = 0
-            result.append(
-                {
-                    "key": f"party_age_{idx}",
-                    "label": label,
-                    "count": count,
-                    "ratio": ratio,
-                    "height_px": height_px,
-                }
-            )
+            height_px = max(8, int(ratio * 2.0)) if count > 0 else 0
+            result.append({"key": f"party_age_{idx}", "label": label, "count": count, "ratio": ratio, "height_px": height_px})
         return result
 
     percent_kinh = round((kinh_count * 100 / total), 1) if total else 0
@@ -1220,28 +1170,13 @@ def _get_dang_vien_overview_context(reference_date=None):
         gender_segments = []
         if subset_total:
             gender_segments = [
-                {
-                    "key": "gender_nam",
-                    "label": "Nam",
-                    "count": male_count,
-                    "percent": male_percent,
-                    "percent_text": _format_percent_vi(male_percent),
-                    "color": "#9f1239",
-                },
-                {
-                    "key": "gender_nu",
-                    "label": "Nữ",
-                    "count": female_count,
-                    "percent": female_percent,
-                    "percent_text": _format_percent_vi(female_percent),
-                    "color": "#e11d48",
-                },
+                {"key": "gender_nam", "label": "Nam", "count": male_count, "percent": male_percent, "percent_text": _format_percent_vi(male_percent), "color": "#9f1239"},
+                {"key": "gender_nu", "label": "Nữ", "count": female_count, "percent": female_percent, "percent_text": _format_percent_vi(female_percent), "color": "#e11d48"},
             ]
 
         dien_chinh_thuc_count = sum(1 for item in members if item.DienDangVien == "CHINH_THUC")
         dien_cho_xet_count = sum(1 for item in members if item.DienDangVien == "CHO_XET")
         dien_other_count = max(0, subset_total - dien_chinh_thuc_count - dien_cho_xet_count)
-
         dien_chinh_thuc_percent = (dien_chinh_thuc_count * 100 / subset_total) if subset_total else 0
         dien_cho_xet_percent = (dien_cho_xet_count * 100 / subset_total) if subset_total else 0
         dien_other_percent = (dien_other_count * 100 / subset_total) if subset_total else 0
@@ -1249,57 +1184,19 @@ def _get_dang_vien_overview_context(reference_date=None):
         membership_segments = []
         if subset_total:
             membership_segments = [
-                {
-                    "key": "dien_chinh_thuc",
-                    "label": "Chính thức",
-                    "count": dien_chinh_thuc_count,
-                    "percent": dien_chinh_thuc_percent,
-                    "percent_text": _format_percent_vi(dien_chinh_thuc_percent),
-                    "color": "#7f1d1d",
-                },
-                {
-                    "key": "dien_cho_xet",
-                    "label": "Chờ xét",
-                    "count": dien_cho_xet_count,
-                    "percent": dien_cho_xet_percent,
-                    "percent_text": _format_percent_vi(dien_cho_xet_percent),
-                    "color": "#b45309",
-                },
+                {"key": "dien_chinh_thuc", "label": "Chính thức", "count": dien_chinh_thuc_count, "percent": dien_chinh_thuc_percent, "percent_text": _format_percent_vi(dien_chinh_thuc_percent), "color": "#7f1d1d"},
+                {"key": "dien_cho_xet", "label": "Chờ xét", "count": dien_cho_xet_count, "percent": dien_cho_xet_percent, "percent_text": _format_percent_vi(dien_cho_xet_percent), "color": "#b45309"},
             ]
             if dien_other_count:
-                membership_segments.append(
-                    {
-                        "key": "dien_khac",
-                        "label": "Khác",
-                        "count": dien_other_count,
-                        "percent": dien_other_percent,
-                        "percent_text": _format_percent_vi(dien_other_percent),
-                        "color": "#64748b",
-                    }
-                )
+                membership_segments.append({"key": "dien_khac", "label": "Khác", "count": dien_other_count, "percent": dien_other_percent, "percent_text": _format_percent_vi(dien_other_percent), "color": "#64748b"})
 
         active_subset = sum(1 for item in members if item.TrangThaiSinhHoat == "Đang sinh hoạt")
         inactive_subset = subset_total - active_subset
-
         tinh_trang_segments = []
         if subset_total:
             tinh_trang_segments = [
-                {
-                    "key": "tinhtrang_dang_sinh_hoat",
-                    "label": "Đang sinh hoạt",
-                    "count": active_subset,
-                    "percent": (active_subset * 100 / subset_total),
-                    "percent_text": _format_percent_vi(active_subset * 100 / subset_total),
-                    "color": "#9f1239",
-                },
-                {
-                    "key": "tinhtrang_mien_sinh_hoat",
-                    "label": "Miễn sinh hoạt",
-                    "count": inactive_subset,
-                    "percent": (inactive_subset * 100 / subset_total),
-                    "percent_text": _format_percent_vi(inactive_subset * 100 / subset_total),
-                    "color": "#78716c",
-                },
+                {"key": "tinhtrang_dang_sinh_hoat", "label": "Đang sinh hoạt", "count": active_subset, "percent": (active_subset * 100 / subset_total), "percent_text": _format_percent_vi(active_subset * 100 / subset_total), "color": "#9f1239"},
+                {"key": "tinhtrang_mien_sinh_hoat", "label": "Miễn sinh hoạt", "count": inactive_subset, "percent": (inactive_subset * 100 / subset_total), "percent_text": _format_percent_vi(inactive_subset * 100 / subset_total), "color": "#78716c"},
             ]
 
         nghe_nghiep_counts = {}
@@ -1307,22 +1204,13 @@ def _get_dang_vien_overview_context(reference_date=None):
         for member in members:
             nghe_nghiep = (member.NgheNghiep or "").strip()
             ly_luan = (member.LyLuanChinhTri or "").strip()
-
             if nghe_nghiep:
                 nghe_nghiep_counts[nghe_nghiep] = nghe_nghiep_counts.get(nghe_nghiep, 0) + 1
             if ly_luan:
                 ly_luan_counts[ly_luan] = ly_luan_counts.get(ly_luan, 0) + 1
 
-        nghe_nghiep_segments = _build_top3_segments(
-            nghe_nghiep_counts,
-            ["#9f1239", "#b45309", "#475569"],
-            "nghe",
-        )
-        ly_luan_segments = _build_top3_segments(
-            ly_luan_counts,
-            ["#7f1d1d", "#9a3412", "#334155"],
-            "lyluan",
-        )
+        nghe_nghiep_segments = _build_top3_segments(nghe_nghiep_counts, ["#9f1239", "#b45309", "#475569"], "nghe")
+        ly_luan_segments = _build_top3_segments(ly_luan_counts, ["#7f1d1d", "#9a3412", "#334155"], "lyluan")
 
         return {
             "total": subset_total,
@@ -1349,7 +1237,6 @@ def _get_dang_vien_overview_context(reference_date=None):
         }
 
     default_payload = _build_overview_payload(dangvien_list)
-
     overview_charts_by_key = {"__default__": default_payload}
 
     def _register_payload(filter_key, members):
@@ -1377,33 +1264,21 @@ def _get_dang_vien_overview_context(reference_date=None):
     if any(item["label"] == "Khác" for item in default_payload["nghe_nghiep_segments"]):
         _register_payload(
             _build_filter_key("nghe", "khac"),
-            [
-                m for m in dangvien_list
-                if (m.NgheNghiep or "").strip() and (m.NgheNghiep or "").strip() not in top_nghe_labels
-            ],
+            [m for m in dangvien_list if (m.NgheNghiep or "").strip() and (m.NgheNghiep or "").strip() not in top_nghe_labels],
         )
 
     top_ly_luan_labels = [item["label"] for item in default_payload["ly_luan_segments"] if item["label"] != "Khác"]
     if any(item["label"] == "Khác" for item in default_payload["ly_luan_segments"]):
         _register_payload(
             _build_filter_key("lyluan", "khac"),
-            [
-                m for m in dangvien_list
-                if (m.LyLuanChinhTri or "").strip() and (m.LyLuanChinhTri or "").strip() not in top_ly_luan_labels
-            ],
+            [m for m in dangvien_list if (m.LyLuanChinhTri or "").strip() and (m.LyLuanChinhTri or "").strip() not in top_ly_luan_labels],
         )
 
     for age_idx, _ in enumerate(age_group_labels):
-        _register_payload(
-            f"age_{age_idx}",
-            [m for m in dangvien_list if _age_bucket_index(m) == age_idx],
-        )
+        _register_payload(f"age_{age_idx}", [m for m in dangvien_list if _age_bucket_index(m) == age_idx])
 
     for party_age_idx, _ in enumerate(party_age_group_labels):
-        _register_payload(
-            f"party_age_{party_age_idx}",
-            [m for m in dangvien_list if _party_age_bucket_index(m) == party_age_idx],
-        )
+        _register_payload(f"party_age_{party_age_idx}", [m for m in dangvien_list if _party_age_bucket_index(m) == party_age_idx])
 
     male_count = default_payload["male_count"]
     female_count = default_payload["female_count"]
@@ -1413,20 +1288,16 @@ def _get_dang_vien_overview_context(reference_date=None):
     dien_chinh_thuc_percent_text = default_payload["dien_chinh_thuc_percent_text"]
     dien_cho_xet_percent_text = default_payload["dien_cho_xet_percent_text"]
     dien_other_percent_text = default_payload["dien_other_percent_text"]
-
     gender_segments = default_payload["gender_segments"]
     membership_segments = default_payload["membership_segments"]
     nghe_nghiep_segments = default_payload["nghe_nghiep_segments"]
     ly_luan_segments = default_payload["ly_luan_segments"]
     tinh_trang_segments = default_payload["tinh_trang_segments"]
-
     gender_chart_style = default_payload["gender_chart_style"]
     membership_chart_style = default_payload["membership_chart_style"]
     age_distribution = default_payload["age_distribution"]
     party_age_distribution = default_payload["party_age_distribution"]
-    age_distribution_by_key = {
-        key: payload["age_distribution"] for key, payload in overview_charts_by_key.items()
-    }
+    age_distribution_by_key = {key: payload["age_distribution"] for key, payload in overview_charts_by_key.items()}
 
     return {
         "total": total,
@@ -1469,77 +1340,10 @@ def _export_dang_vien_csv(dangvien_list):
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="dang_vien_data.csv"'
     response.write("\ufeff")
-
     writer = csv.writer(response)
-    writer.writerow([
-        "CCCD",
-        "Mã ĐV",
-        "Họ tên",
-        "Bí danh",
-        "Giới tính",
-        "Ngày sinh",
-        "Quê quán",
-        "Dân tộc",
-        "Nơi thường trú",
-        "Nơi tạm trú",
-        "Nghề nghiệp",
-        "GDPT",
-        "GDNN",
-        "GDDH",
-        "GDSĐH",
-        "Học hàm",
-        "Lý luận chính trị",
-        "Ngoại ngữ",
-        "Tin học",
-        "Tiếng DTTS",
-        "Ngày vào Đảng",
-        "Ngày chính thức",
-        "Tuổi Đảng",
-        "Đảng bộ",
-        "Chi bộ",
-        "Trạng thái",
-        "Diện Đảng viên",
-        "Số điện thoại",
-        "Ghi chú",
-        "Số Huy hiệu",
-        "Huy hiệu cao nhất",
-    ])
-
+    writer.writerow(["CCCD","Mã ĐV","Họ tên","Bí danh","Giới tính","Ngày sinh","Quê quán","Dân tộc","Nơi thường trú","Nơi tạm trú","Nghề nghiệp","GDPT","GDNN","GDDH","GDSĐH","Học hàm","Lý luận chính trị","Ngoại ngữ","Tin học","Tiếng DTTS","Ngày vào Đảng","Ngày chính thức","Tuổi Đảng","Đảng bộ","Chi bộ","Trạng thái","Diện Đảng viên","Số điện thoại","Ghi chú","Số Huy hiệu","Huy hiệu cao nhất"])
     for item in dangvien_list:
-        writer.writerow([
-            item.SoCCCD,
-            item.MaDangVien,
-            item.HoTen,
-            item.BiDanh,
-            item.GioiTinh,
-            item.NgaySinh.strftime("%d/%m/%Y") if item.NgaySinh else "",
-            item.QueQuan,
-            item.DanToc,
-            item.NoiThuongTru,
-            item.NoiTamTru,
-            item.NgheNghiep,
-            item.GDPT,
-            item.GDNN,
-            item.GDDH,
-            item.GDSĐH,
-            item.HocHam,
-            item.LyLuanChinhTri,
-            item.NgoaiNgu,
-            item.TinHoc,
-            item.TiengDTTS,
-            item.NgayVaoDang.strftime("%d/%m/%Y") if item.NgayVaoDang else "",
-            item.NgayChinhThuc.strftime("%d/%m/%Y") if item.NgayChinhThuc else "",
-            item.tuoi_dang,
-            item.DangBoID.TenDangBo if item.DangBoID else "",
-            item.ChiBoID.TenChiBo if item.ChiBoID else "",
-            item.TrangThaiSinhHoat,
-            item.DienDangVien,
-            item.SoDienThoai,
-            item.GhiChu,
-            item.so_huy_hieu,
-            item.HuyHieuCaoNhat or "",
-        ])
-
+        writer.writerow([item.SoCCCD,item.MaDangVien,item.HoTen,item.BiDanh,item.GioiTinh,item.NgaySinh.strftime("%d/%m/%Y") if item.NgaySinh else "",item.QueQuan,item.DanToc,item.NoiThuongTru,item.NoiTamTru,item.NgheNghiep,item.GDPT,item.GDNN,item.GDDH,item.GDSĐH,item.HocHam,item.LyLuanChinhTri,item.NgoaiNgu,item.TinHoc,item.TiengDTTS,item.NgayVaoDang.strftime("%d/%m/%Y") if item.NgayVaoDang else "",item.NgayChinhThuc.strftime("%d/%m/%Y") if item.NgayChinhThuc else "",item.tuoi_dang,item.DangBoID.TenDangBo if item.DangBoID else "",item.ChiBoID.TenChiBo if item.ChiBoID else "",item.TrangThaiSinhHoat,item.DienDangVien,item.SoDienThoai,item.GhiChu,item.so_huy_hieu,item.HuyHieuCaoNhat or ""])
     return response
 
 
@@ -1547,89 +1351,16 @@ def _export_dang_vien_excel(dangvien_list):
     try:
         from openpyxl import Workbook
     except ImportError:
-        return HttpResponse(
-            "Thiếu thư viện openpyxl để xuất Excel. Vui lòng cài đặt openpyxl.",
-            status=500,
-            content_type="text/plain; charset=utf-8",
-        )
+        return HttpResponse("Thiếu thư viện openpyxl để xuất Excel. Vui lòng cài đặt openpyxl.", status=500, content_type="text/plain; charset=utf-8")
 
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "DangVien"
-
-    headers = [
-        "CCCD",
-        "Mã ĐV",
-        "Họ tên",
-        "Bí danh",
-        "Giới tính",
-        "Ngày sinh",
-        "Quê quán",
-        "Dân tộc",
-        "Nơi thường trú",
-        "Nơi tạm trú",
-        "Nghề nghiệp",
-        "GDPT",
-        "GDNN",
-        "GDDH",
-        "GDSĐH",
-        "Học hàm",
-        "Lý luận chính trị",
-        "Ngoại ngữ",
-        "Tin học",
-        "Tiếng DTTS",
-        "Ngày vào Đảng",
-        "Ngày chính thức",
-        "Tuổi Đảng",
-        "Đảng bộ",
-        "Chi bộ",
-        "Trạng thái",
-        "Diện Đảng viên",
-        "Số điện thoại",
-        "Ghi chú",
-        "Số Huy hiệu",
-        "Huy hiệu cao nhất",
-    ]
+    headers = ["CCCD","Mã ĐV","Họ tên","Bí danh","Giới tính","Ngày sinh","Quê quán","Dân tộc","Nơi thường trú","Nơi tạm trú","Nghề nghiệp","GDPT","GDNN","GDDH","GDSĐH","Học hàm","Lý luận chính trị","Ngoại ngữ","Tin học","Tiếng DTTS","Ngày vào Đảng","Ngày chính thức","Tuổi Đảng","Đảng bộ","Chi bộ","Trạng thái","Diện Đảng viên","Số điện thoại","Ghi chú","Số Huy hiệu","Huy hiệu cao nhất"]
     worksheet.append(headers)
-
     for item in dangvien_list:
-        worksheet.append([
-            item.SoCCCD,
-            item.MaDangVien,
-            item.HoTen,
-            item.BiDanh,
-            item.GioiTinh,
-            item.NgaySinh.strftime("%d/%m/%Y") if item.NgaySinh else "",
-            item.QueQuan,
-            item.DanToc,
-            item.NoiThuongTru,
-            item.NoiTamTru,
-            item.NgheNghiep,
-            item.GDPT,
-            item.GDNN,
-            item.GDDH,
-            item.GDSĐH,
-            item.HocHam,
-            item.LyLuanChinhTri,
-            item.NgoaiNgu,
-            item.TinHoc,
-            item.TiengDTTS,
-            item.NgayVaoDang.strftime("%d/%m/%Y") if item.NgayVaoDang else "",
-            item.NgayChinhThuc.strftime("%d/%m/%Y") if item.NgayChinhThuc else "",
-            item.tuoi_dang,
-            item.DangBoID.TenDangBo if item.DangBoID else "",
-            item.ChiBoID.TenChiBo if item.ChiBoID else "",
-            item.TrangThaiSinhHoat,
-            item.DienDangVien,
-            item.SoDienThoai,
-            item.GhiChu,
-            item.so_huy_hieu,
-            item.HuyHieuCaoNhat or "",
-        ])
-
-    response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        worksheet.append([item.SoCCCD,item.MaDangVien,item.HoTen,item.BiDanh,item.GioiTinh,item.NgaySinh.strftime("%d/%m/%Y") if item.NgaySinh else "",item.QueQuan,item.DanToc,item.NoiThuongTru,item.NoiTamTru,item.NgheNghiep,item.GDPT,item.GDNN,item.GDDH,item.GDSĐH,item.HocHam,item.LyLuanChinhTri,item.NgoaiNgu,item.TinHoc,item.TiengDTTS,item.NgayVaoDang.strftime("%d/%m/%Y") if item.NgayVaoDang else "",item.NgayChinhThuc.strftime("%d/%m/%Y") if item.NgayChinhThuc else "",item.tuoi_dang,item.DangBoID.TenDangBo if item.DangBoID else "",item.ChiBoID.TenChiBo if item.ChiBoID else "",item.TrangThaiSinhHoat,item.DienDangVien,item.SoDienThoai,item.GhiChu,item.so_huy_hieu,item.HuyHieuCaoNhat or ""])
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="dang_vien_data.xlsx"'
     workbook.save(response)
     return response
@@ -1655,7 +1386,6 @@ def _get_dang_vien_structure_context(reference_date=None):
             if not member.NgayVaoDang:
                 continue
             year = member.NgayVaoDang.year
-            # Handle open-ended periods safely when one boundary is missing.
             if start_year is None and end_year is not None:
                 if year <= end_year:
                     count += 1
@@ -1664,22 +1394,13 @@ def _get_dang_vien_structure_context(reference_date=None):
                     count += 1
             elif start_year is not None and end_year is not None and start_year <= year <= end_year:
                 count += 1
-
         percent = round((count * 100 / total), 1) if total else 0
         period_cards.append({"label": label, "count": count, "percent": percent})
 
     period_colors = ["#9f1239", "#be123c", "#b45309", "#9a3412", "#7f1d1d"]
     period_segments = []
     for idx, item in enumerate(period_cards):
-        period_segments.append(
-            {
-                "label": item["label"],
-                "count": item["count"],
-                "percent": item["percent"],
-                "percent_text": str(item["percent"]).replace(".", ","),
-                "color": period_colors[idx % len(period_colors)],
-            }
-        )
+        period_segments.append({"label": item["label"], "count": item["count"], "percent": item["percent"], "percent_text": str(item["percent"]).replace(".", ","), "color": period_colors[idx % len(period_colors)]})
 
     if total:
         start_percent = 0.0
@@ -1705,44 +1426,28 @@ def _get_dang_vien_structure_context(reference_date=None):
     monthly_admission_top = []
     for month, count in top_month_pairs:
         ratio = (count * 100 / max_top_month) if max_top_month else 0
-        monthly_admission_top.append(
-            {
-                "label": f"Tháng {month}",
-                "value": count,
-                "ratio": ratio,
-                "height_px": max(6, int(ratio * 1.9)) if count else 3,
-            }
-        )
+        monthly_admission_top.append({"label": f"Tháng {month}", "value": count, "ratio": ratio, "height_px": max(6, int(ratio * 1.9)) if count else 3})
 
     yearly_values = [member.NgayVaoDang.year for member in members if member.NgayVaoDang]
     start_year = 1944
     end_year = max(yearly_values) if yearly_values else today.year
-
     yearly_counts = {year: 0 for year in range(start_year, end_year + 1)}
     for member in members:
         if member.NgayVaoDang and start_year <= member.NgayVaoDang.year <= end_year:
             yearly_counts[member.NgayVaoDang.year] += 1
 
     max_yearly = max(yearly_counts.values()) if yearly_counts else 0
-
     special_year = None
     special_count = 0
     if max_yearly > 0:
-        special_year = min(
-            (year for year, count in yearly_counts.items() if count == max_yearly),
-            default=None,
-        )
+        special_year = min((year for year, count in yearly_counts.items() if count == max_yearly), default=None)
         special_count = max_yearly
 
     def _year_color(year):
-        if year <= 1974:
-            return "#d65a2b"
-        if year <= 1985:
-            return "#2b6cb0"
-        if year <= 1999:
-            return "#1f9d79"
-        if year <= 2009:
-            return "#5b50c8"
+        if year <= 1974: return "#d65a2b"
+        if year <= 1985: return "#2b6cb0"
+        if year <= 1999: return "#1f9d79"
+        if year <= 2009: return "#5b50c8"
         return "#eb9e26"
 
     yearly_admission_bars = []
@@ -1750,18 +1455,7 @@ def _get_dang_vien_structure_context(reference_date=None):
         value = yearly_counts[year]
         ratio = (value * 100 / max_yearly) if max_yearly else 0
         height_px = max(2, int(ratio * 3.4)) if value > 0 else 1
-        show_label = (year % 5 == 0)
-
-        yearly_admission_bars.append(
-            {
-                "year": year,
-                "value": value,
-                "height_px": height_px,
-                "color": _year_color(year),
-                "is_special": special_year is not None and year == special_year,
-                "show_label": show_label,
-            }
-        )
+        yearly_admission_bars.append({"year": year, "value": value, "height_px": height_px, "color": _year_color(year), "is_special": special_year is not None and year == special_year, "show_label": (year % 5 == 0)})
 
     return {
         "total": total,
@@ -1793,9 +1487,7 @@ def dangvien_data(request):
     _sync_dang_vien_membership_statuses()
     queryset = _base_dang_vien_queryset()
     filtered_queryset, active_filters = _apply_dang_vien_filters(queryset, request.GET)
-    dangvien_list, _, _ = _get_dang_vien_list_with_metrics(
-        reference_date=timezone.localdate(), queryset=filtered_queryset
-    )
+    dangvien_list, _, _ = _get_dang_vien_list_with_metrics(reference_date=timezone.localdate(), queryset=filtered_queryset)
 
     download_format = (request.GET.get("download") or "").strip().lower()
     if download_format == "csv":
@@ -1808,10 +1500,7 @@ def dangvien_data(request):
         "total_filtered": len(dangvien_list),
         "filters": active_filters,
         "current_full_path": request.get_full_path(),
-        "overdue_cho_xet_members": [
-            item for item in dangvien_list
-            if item.DienDangVien == "CHO_XET" and item.canh_bao_qua_han_xet
-        ],
+        "overdue_cho_xet_members": [item for item in dangvien_list if item.DienDangVien == "CHO_XET" and item.canh_bao_qua_han_xet],
         "chi_bo_options": ChiBo.objects.order_by("TenChiBo"),
         "gioi_tinh_choices": [("Nam", "Nam"), ("Nữ", "Nữ")],
         "dien_dang_vien_choices": DangVien.DIEN_DANG_VIEN_CHOICES,
@@ -1819,25 +1508,9 @@ def dangvien_data(request):
         "que_quan_options": [item[0] for item in PROVINCE_CITY_CHOICES if item[0]],
         "dan_toc_options": [item[0] for item in ETHNIC_GROUPS if item[0]],
         "gdpt_options": [f"{i}/12" for i in range(1, 13)],
-        "ly_luan_chinh_tri_options": [
-            "Không",
-            "Sơ cấp",
-            "Trung cấp",
-            "Cao cấp",
-            "Cử nhân",
-        ],
-        "khong_khac_options": [
-            ("KHONG", "Không"),
-            ("KHAC", "Khác"),
-        ],
-        "tuoi_dang_groups": [
-            ("lt10", "Dưới 10 năm"),
-            ("gte10", "10 năm trở lên"),
-            ("gte20", "20 năm trở lên"),
-            ("gte30", "30 năm trở lên"),
-            ("gte40", "40 năm trở lên"),
-            ("gte50", "50 năm trở lên"),
-        ],
+        "ly_luan_chinh_tri_options": ["Không", "Sơ cấp", "Trung cấp", "Cao cấp", "Cử nhân"],
+        "khong_khac_options": [("KHONG", "Không"), ("KHAC", "Khác")],
+        "tuoi_dang_groups": [("lt10", "Dưới 10 năm"), ("gte10", "10 năm trở lên"), ("gte20", "20 năm trở lên"), ("gte30", "30 năm trở lên"), ("gte40", "40 năm trở lên"), ("gte50", "50 năm trở lên")],
     }
     return render(request, "qldv/dangvien_data.html", context)
 
@@ -1873,10 +1546,7 @@ def dangvien_add(request):
         import_form = DangVienImportForm(request.POST, request.FILES)
         if import_form.is_valid():
             try:
-                created, errors = _import_dang_vien_data(
-                    import_form.cleaned_data["import_file"],
-                    default_dang_bo=default_dang_bo,
-                )
+                created, errors = _import_dang_vien_data(import_form.cleaned_data["import_file"], default_dang_bo=default_dang_bo)
             except Exception as exc:
                 messages.error(request, f"Không thể đọc file import: {exc}")
             else:
@@ -1884,7 +1554,6 @@ def dangvien_add(request):
                     messages.success(request, f"Import thành công {created} bản ghi.")
                 if errors:
                     messages.warning(request, "\n".join(errors[:20]))
-
                 if created and not errors:
                     return redirect("dangvien_add")
     elif request.method == "POST":
@@ -1894,20 +1563,12 @@ def dangvien_add(request):
             single_form.save()
             messages.success(request, "Đã lưu thông tin Đảng viên.")
             return redirect("dangvien_add")
-
         messages.error(request, "Không thể lưu Đảng viên. Vui lòng kiểm tra các trường đang báo lỗi.")
     else:
         single_form = DangVienForm(dang_bo=default_dang_bo)
         import_form = DangVienImportForm()
 
-    return render(
-        request,
-        "qldv/dangvien_add.html",
-        {
-            "single_form": single_form,
-            "import_form": import_form,
-        },
-    )
+    return render(request, "qldv/dangvien_add.html", {"single_form": single_form, "import_form": import_form})
 
 
 def dangvien_edit(request, dangvien_id):
@@ -1923,14 +1584,7 @@ def dangvien_edit(request, dangvien_id):
     else:
         form = DangVienForm(instance=dangvien_item, dang_bo=dang_bo)
 
-    return render(
-        request,
-        "qldv/dangvien_edit.html",
-        {
-            "form": form,
-            "dangvien_item": dangvien_item,
-        },
-    )
+    return render(request, "qldv/dangvien_edit.html", {"form": form, "dangvien_item": dangvien_item})
 
 
 def _base_huy_hieu_queryset():
@@ -1944,62 +1598,25 @@ def _apply_huy_hieu_filters(queryset, query_params):
     trang_thai = (query_params.get("trang_thai") or "").strip()
 
     if q:
-        queryset = queryset.filter(
-            Q(DangVienID__HoTen__icontains=q) |
-            Q(DangVienID__MaDangVien__icontains=q) |
-            Q(DangVienID__SoCCCD__icontains=q)
-        )
-
+        queryset = queryset.filter(Q(DangVienID__HoTen__icontains=q) | Q(DangVienID__MaDangVien__icontains=q) | Q(DangVienID__SoCCCD__icontains=q))
     if year and year.isdigit():
         queryset = queryset.filter(NgayTrao__year=int(year))
-
     if badge_year:
         queryset = queryset.filter(LoaiHuyHieu__icontains=f"{badge_year} năm")
-
     if trang_thai:
         queryset = queryset.filter(TrangThai=trang_thai)
 
-    return queryset, {
-        "q": q,
-        "year": year,
-        "badge_year": badge_year,
-        "trang_thai": trang_thai,
-    }
+    return queryset, {"q": q, "year": year, "badge_year": badge_year, "trang_thai": trang_thai}
 
 
 def _export_huy_hieu_csv(huyhieu_list):
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="huy_hieu_data.csv"'
     response.write("\ufeff")
-
     writer = csv.writer(response)
-    writer.writerow([
-        "Họ tên",
-        "Mã ĐV",
-        "CCCD",
-        "Loại huy hiệu",
-        "Ngày đủ điều kiện",
-        "Đợt trao tặng",
-        "Trạng thái",
-        "Số quyết định",
-        "Ngày trao",
-        "Ghi chú",
-    ])
-
+    writer.writerow(["Họ tên","Mã ĐV","CCCD","Loại huy hiệu","Ngày đủ điều kiện","Đợt trao tặng","Trạng thái","Số quyết định","Ngày trao","Ghi chú"])
     for item in huyhieu_list:
-        writer.writerow([
-            item.DangVienID.HoTen,
-            item.DangVienID.MaDangVien,
-            item.DangVienID.SoCCCD,
-            item.LoaiHuyHieu,
-            item.NgayDuDieuKien.strftime("%d/%m/%Y") if item.NgayDuDieuKien else "",
-            item.DotTraoTang,
-            item.TrangThai,
-            item.SoQuyetDinh,
-            item.NgayTrao.strftime("%d/%m/%Y") if item.NgayTrao else "",
-            item.GhiChu,
-        ])
-
+        writer.writerow([item.DangVienID.HoTen,item.DangVienID.MaDangVien,item.DangVienID.SoCCCD,item.LoaiHuyHieu,item.NgayDuDieuKien.strftime("%d/%m/%Y") if item.NgayDuDieuKien else "",item.DotTraoTang,item.TrangThai,item.SoQuyetDinh,item.NgayTrao.strftime("%d/%m/%Y") if item.NgayTrao else "",item.GhiChu])
     return response
 
 
@@ -2007,47 +1624,15 @@ def _export_huy_hieu_excel(huyhieu_list):
     try:
         from openpyxl import Workbook
     except ImportError:
-        return HttpResponse(
-            "Thiếu thư viện openpyxl để xuất Excel. Vui lòng cài đặt openpyxl.",
-            status=500,
-            content_type="text/plain; charset=utf-8",
-        )
+        return HttpResponse("Thiếu thư viện openpyxl để xuất Excel. Vui lòng cài đặt openpyxl.", status=500, content_type="text/plain; charset=utf-8")
 
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "HuyHieu"
-
-    headers = [
-        "Họ tên",
-        "Mã ĐV",
-        "CCCD",
-        "Loại huy hiệu",
-        "Ngày đủ điều kiện",
-        "Đợt trao tặng",
-        "Trạng thái",
-        "Số quyết định",
-        "Ngày trao",
-        "Ghi chú",
-    ]
-    worksheet.append(headers)
-
+    worksheet.append(["Họ tên","Mã ĐV","CCCD","Loại huy hiệu","Ngày đủ điều kiện","Đợt trao tặng","Trạng thái","Số quyết định","Ngày trao","Ghi chú"])
     for item in huyhieu_list:
-        worksheet.append([
-            item.DangVienID.HoTen,
-            item.DangVienID.MaDangVien,
-            item.DangVienID.SoCCCD,
-            item.LoaiHuyHieu,
-            item.NgayDuDieuKien.strftime("%d/%m/%Y") if item.NgayDuDieuKien else "",
-            item.DotTraoTang,
-            item.TrangThai,
-            item.SoQuyetDinh,
-            item.NgayTrao.strftime("%d/%m/%Y") if item.NgayTrao else "",
-            item.GhiChu,
-        ])
-
-    response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        worksheet.append([item.DangVienID.HoTen,item.DangVienID.MaDangVien,item.DangVienID.SoCCCD,item.LoaiHuyHieu,item.NgayDuDieuKien.strftime("%d/%m/%Y") if item.NgayDuDieuKien else "",item.DotTraoTang,item.TrangThai,item.SoQuyetDinh,item.NgayTrao.strftime("%d/%m/%Y") if item.NgayTrao else "",item.GhiChu])
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="huy_hieu_data.xlsx"'
     workbook.save(response)
     return response
@@ -2056,7 +1641,6 @@ def _export_huy_hieu_excel(huyhieu_list):
 def dangvien_delete(request, dangvien_id):
     if request.method != "POST":
         return redirect("dangvien")
-
     dangvien_item = get_object_or_404(DangVien, pk=dangvien_id)
     dangvien_item.delete()
     messages.success(request, "Đã xóa Đảng viên thành công.")
@@ -2074,23 +1658,12 @@ def huyhieu(request):
     ceremony_dates = get_ceremony_dates(selected_year_int)
     selected_ceremony_key = request.GET.get("ceremony", "all")
     if selected_ceremony_key == "all":
-        selected_ceremony = {
-            "key": "all",
-            "name": "Tất cả các đợt",
-            "short_name": "cả năm",
-            "date": datetime.date(selected_year_int, 12, 31),
-        }
+        selected_ceremony = {"key": "all", "name": "Tất cả các đợt", "short_name": "cả năm", "date": datetime.date(selected_year_int, 12, 31)}
     else:
-        selected_ceremony = next(
-            (item for item in ceremony_dates if item["key"] == selected_ceremony_key),
-            ceremony_dates[0],
-        )
+        selected_ceremony = next((item for item in ceremony_dates if item["key"] == selected_ceremony_key), ceremony_dates[0])
+
     review_date = selected_ceremony["date"]
-    review_date_label = (
-        f"Tất cả các đợt năm {selected_year_int}"
-        if selected_ceremony_key == "all"
-        else review_date.strftime("%d/%m/%Y")
-    )
+    review_date_label = f"Tất cả các đợt năm {selected_year_int}" if selected_ceremony_key == "all" else review_date.strftime("%d/%m/%Y")
 
     badge_year_raw = request.GET.get("badge_year", "")
     try:
@@ -2105,13 +1678,7 @@ def huyhieu(request):
     def build_context():
         huyhieu_list = HuyHieuDang.objects.select_related("DangVienID").order_by("-NgayTrao")
         dangvien_list = DangVien.objects.select_related("ChiBoID", "DangBoID").order_by("HoTen")
-        eligible_members = get_eligible_members(
-            dangvien_list,
-            review_date,
-            selected_badge_year,
-            list(huyhieu_list),
-        )
-
+        eligible_members = get_eligible_members(dangvien_list, review_date, selected_badge_year, list(huyhieu_list))
         return {
             "total_huyhieu": huyhieu_list.count(),
             "review_date": review_date,
@@ -2153,10 +1720,7 @@ def huyhieu(request):
             return redirect(request.get_full_path())
 
         dang_vien = get_object_or_404(DangVien, pk=dang_vien_id)
-        existing_badge = HuyHieuDang.objects.filter(
-            DangVienID=dang_vien,
-            LoaiHuyHieu__icontains=f"{eligible_for_years} năm",
-        ).exists()
+        existing_badge = HuyHieuDang.objects.filter(DangVienID=dang_vien, LoaiHuyHieu__icontains=f"{eligible_for_years} năm").exists()
         if existing_badge:
             messages.warning(request, f"{dang_vien.HoTen} đã có huy hiệu mốc {eligible_for_years} năm.")
             return redirect(request.get_full_path())
@@ -2192,36 +1756,19 @@ def huyhieu_add(request):
             form = HuyHieuLegacyForm(request.POST)
             if form.is_valid():
                 data = form.cleaned_data
-                dang_vien = _resolve_dang_vien_for_huy_hieu(
-                    ma_dang_vien=data.get("MaDangVien"),
-                    so_cccd=data.get("SoCCCD"),
-                )
+                dang_vien = _resolve_dang_vien_for_huy_hieu(ma_dang_vien=data.get("MaDangVien"), so_cccd=data.get("SoCCCD"))
                 if not dang_vien:
                     messages.error(request, "Không tìm thấy Đảng viên.")
                 else:
-                    duplicated = HuyHieuDang.objects.filter(
-                        DangVienID=dang_vien,
-                        LoaiHuyHieu=data["LoaiHuyHieu"],
-                        SoQuyetDinh=data["SoQuyetDinh"],
-                    ).exists()
+                    duplicated = HuyHieuDang.objects.filter(DangVienID=dang_vien, LoaiHuyHieu=data["LoaiHuyHieu"], SoQuyetDinh=data["SoQuyetDinh"]).exists()
                     if duplicated:
                         messages.warning(request, "Hồ sơ huy hiệu này đã tồn tại.")
                     else:
-                        HuyHieuDang.objects.create(
-                            DangVienID=dang_vien,
-                            LoaiHuyHieu=data["LoaiHuyHieu"],
-                            NgayDuDieuKien=data["NgayDuDieuKien"],
-                            DotTraoTang=data["DotTraoTang"],
-                            TrangThai=data["TrangThai"],
-                            SoQuyetDinh=data["SoQuyetDinh"],
-                            NgayTrao=data["NgayTrao"],
-                            GhiChu=(data.get("GhiChu") or "").strip() or None,
-                        )
+                        HuyHieuDang.objects.create(DangVienID=dang_vien, LoaiHuyHieu=data["LoaiHuyHieu"], NgayDuDieuKien=data["NgayDuDieuKien"], DotTraoTang=data["DotTraoTang"], TrangThai=data["TrangThai"], SoQuyetDinh=data["SoQuyetDinh"], NgayTrao=data["NgayTrao"], GhiChu=(data.get("GhiChu") or "").strip() or None)
                         messages.success(request, f"Đã lưu hồ sơ cho {dang_vien.HoTen}.")
                         return redirect("huyhieu_add")
             else:
                 messages.error(request, "Dữ liệu không hợp lệ.")
-
         elif action_type == "legacy_import":
             form = HuyHieuImportForm(request.POST, request.FILES)
             if form.is_valid():
@@ -2236,14 +1783,7 @@ def huyhieu_add(request):
                 except Exception as exc:
                     messages.error(request, f"Lỗi import: {exc}")
 
-    return render(
-        request,
-        "qldv/huyhieu_add.html",
-        {
-            "legacy_form": HuyHieuLegacyForm(),
-            "import_form": HuyHieuImportForm(),
-        },
-    )
+    return render(request, "qldv/huyhieu_add.html", {"legacy_form": HuyHieuLegacyForm(), "import_form": HuyHieuImportForm()})
 
 
 def huyhieu_data(request):
@@ -2281,20 +1821,12 @@ def huyhieu_edit(request, huyhieu_id):
     else:
         form = HuyHieuEditForm(instance=huyhieu_item)
 
-    return render(
-        request,
-        "qldv/huyhieu_edit.html",
-        {
-            "form": form,
-            "huyhieu_item": huyhieu_item,
-        },
-    )
+    return render(request, "qldv/huyhieu_edit.html", {"form": form, "huyhieu_item": huyhieu_item})
 
 
 def huyhieu_delete(request, huyhieu_id):
     if request.method != "POST":
         return redirect("huyhieu")
-
     huyhieu_item = get_object_or_404(HuyHieuDang, pk=huyhieu_id)
     ho_ten = huyhieu_item.DangVienID.HoTen
     loai_huy_hieu = huyhieu_item.LoaiHuyHieu
@@ -2310,7 +1842,6 @@ def user(request):
 # ==================== Authentication Views ====================
 
 def login_view(request):
-    """Xử lý đăng nhập"""
     from django.contrib.auth import authenticate, login
     from .forms import LoginForm
 
@@ -2323,18 +1854,13 @@ def login_view(request):
             email = form.cleaned_data.get("email")
             password = form.cleaned_data.get("password")
             remember_me = form.cleaned_data.get("remember_me")
-
-            # Authenticate using email
             user = authenticate(request, username=email, password=password)
             if user is not None:
                 login(request, user)
-
-                # Nếu "remember me" được chọn, set session expiry time dài hơn
                 if remember_me:
-                    request.session.set_expiry(30 * 24 * 60 * 60)  # 30 ngày
+                    request.session.set_expiry(30 * 24 * 60 * 60)
                 else:
-                    request.session.set_expiry(0)  # Session kết thúc khi trình duyệt đóng
-
+                    request.session.set_expiry(0)
                 return redirect("home")
             else:
                 messages.error(request, "Email hoặc mật khẩu không chính xác.")
@@ -2345,7 +1871,6 @@ def login_view(request):
 
 
 def signup_view(request):
-    """Xử lý đăng ký tài khoản mới"""
     from django.contrib.auth.models import User
     from .forms import SignUpForm
 
@@ -2358,35 +1883,19 @@ def signup_view(request):
             full_name = form.cleaned_data.get("full_name")
             email = form.cleaned_data.get("email")
             password = form.cleaned_data.get("password")
-
-            # Tách full_name thành first_name và last_name
             name_parts = full_name.strip().split()
             if len(name_parts) >= 2:
-                # Nếu có 2 từ trở lên: từ cuối là first_name, còn lại là last_name
                 first_name = name_parts[-1]
                 last_name = " ".join(name_parts[:-1])
             else:
-                # Nếu chỉ có 1 từ: để vào first_name
                 first_name = full_name.strip()
                 last_name = ""
-
-            # Tạo user mới
-            user = User.objects.create_user(
-                username=email,  # Sử dụng email làm username
-                email=email,
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-            )
-
-            # Đăng nhập ngay sau khi tạo tài khoản
+            user = User.objects.create_user(username=email, email=email, password=password, first_name=first_name, last_name=last_name)
             from django.contrib.auth import authenticate, login
             user = authenticate(request, username=email, password=password)
             login(request, user)
-
             return redirect("home")
         else:
-            # Hiển thị lỗi
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
@@ -2397,9 +1906,7 @@ def signup_view(request):
 
 
 def logout_view(request):
-    """Xử lý đăng xuất"""
     from django.contrib.auth import logout
-
     logout(request)
     messages.success(request, "Bạn đã đăng xuất thành công.")
     return redirect("home")

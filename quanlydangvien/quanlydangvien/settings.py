@@ -34,7 +34,7 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'qldv-319520474101.asia-southeast1.run.app').split(',')
 
 # CSRF Trusted Origins for Cloud Run
-CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost,http://127.0.0.1').split(',')
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://qldv-319520474101.asia-southeast1.run.app,http://localhost,http://127.0.0.1').split(',')
 
 
 # Application definition

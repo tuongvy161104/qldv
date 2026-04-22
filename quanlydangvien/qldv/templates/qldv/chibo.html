@@ -324,44 +324,8 @@
 {% block content %}
 <div class="page">
 
-	<!-- ==================== BỘ LỌC ==================== -->
-	<div class="filter-bar">
-		<div class="filter-group">
-			<label>Địa bàn</label>
-			<select name="dia_ban" onchange="applyFilters()">
-				<option value="">Tất cả địa bàn</option>
-				{% for db in dia_ban_options %}
-				<option value="{{ db }}" {% if db==selected_dia_ban %}selected{% endif %}>{{ db }}</option>
-				{% endfor %}
-			</select>
-		</div>
 
-		<div class="filter-group">
-			<label>Trạng thái</label>
-			<select name="trang_thai" onchange="applyFilters()">
-				<option value="">Tất cả trạng thái</option>
-				{% for tt in trang_thai_options %}
-				<option value="{{ tt }}" {% if tt==selected_trang_thai %}selected{% endif %}>{{ tt }}</option>
-				{% endfor %}
-			</select>
-		</div>
 
-		<div class="filter-group">
-			<label>Loại Chi bộ</label>
-			<select name="loai" onchange="applyFilters()">
-				<option value="">Tất cả loại</option>
-				<option value="residential" {% if selected_loai=='residential' %}selected{% endif %}>Khu dân cư</option>
-				<option value="agency" {% if selected_loai=='agency' %}selected{% endif %}>Cơ quan / Đơn vị</option>
-				<option value="school" {% if selected_loai=='school' %}selected{% endif %}>Trường học</option>
-			</select>
-		</div>
-
-		<div>
-			<a href="{% url 'chibo' %}" class="btn btn-clear">Xóa lọc</a>
-		</div>
-	</div>
-
-	<!-- Phần còn lại giữ nguyên, chỉ thay các biến thống kê -->
 	<section class="page-head">
 		<div>
 			<h1>Theo dõi Tổng quan Chi bộ</h1>
@@ -395,8 +359,64 @@
 		</div>
 	</section>
 
-	<!-- Phần còn lại giữ nguyên (dashboard-grid, area-detail...) -->
-	<!-- ... (giữ nguyên code cũ từ <div class="section-title"> trở xuống) ... -->
+	<div class="section-title">Phân bổ &amp; Cơ cấu</div>
+
+	<section class="dashboard-grid">
+		<article class="card">
+			<h2 class="card-title">Phân bổ theo địa bàn</h2>
+			<p class="card-sub">Số Chi bộ tại mỗi khu vực</p>
+			<div class="legend-wrap">
+				{% for item in by_dia_ban %}
+				<div class="legend-item">
+					<span class="legend-dot" data-dot-color="{{ item.color }}"></span>
+					{{ item.name }} - {{ item.count }}
+				</div>
+				{% endfor %}
+			</div>
+			<div class="donut-wrap">
+				<div class="donut" data-donut-style="{{ dia_ban_donut_style }}"></div>
+			</div>
+		</article>
+
+		<article class="card">
+			<h2 class="card-title">Phân loại Chi bộ</h2>
+			<p class="card-sub">Theo tính chất hoạt động</p>
+			<div class="category-list">
+				{% for item in category_blocks %}
+				<div class="category-item">
+					<div class="category-icon">{{ item.icon }}</div>
+					<div class="category-main">
+						<b>{{ item.label }}</b>
+						<p>{{ item.description }}</p>
+					</div>
+					<div class="category-badge" data-badge-color="{{ item.color }}">{{ item.count }} - {{ item.percent }}%</div>
+				</div>
+				{% endfor %}
+			</div>
+		</article>
+	</section>
+
+	<section class="area-detail">
+		<h2 class="card-title">Chi tiết theo địa bàn</h2>
+		<p class="card-sub">Phân bổ hoạt động / ngừng hoạt động</p>
+		<div class="area-detail-list">
+			{% for item in by_dia_ban %}
+			<div class="area-row">
+				<div>{{ item.name }}</div>
+				<div class="area-track">
+					<div class="area-fill" data-area-color="{{ item.color }}" data-area-width="{{ item.bar_ratio }}">
+					</div>
+				</div>
+				<div class="area-count">{{ item.count }}</div>
+				{% if item.inactive_count > 0 %}
+				<div class="area-badge badge-warn">{{ item.inactive_count }} ngừng</div>
+				{% else %}
+				<div class="area-badge badge-ok">Tất cả HĐ</div>
+				{% endif %}
+			</div>
+			{% endfor %}
+		</div>
+	</section>
 
 </div>
 {% endblock %}

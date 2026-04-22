@@ -505,6 +505,15 @@ def _base_chi_bo_queryset():
     ).order_by("TenChiBo")
 
 
+def _classify_chi_bo_category(name):
+    text = (name or "").strip().lower()
+    if any(k in text for k in ["trường", "thcs", "tiểu học", "mầm non", "thpt", "hoc"]):
+        return "school"
+    if any(k in text for k in ["cơ quan", "ubnd", "công an", "y tế", "đơn vị", "chi cục", "ban "]):
+        return "agency"
+    return "residential"
+
+
 def _apply_chi_bo_filters(queryset, query_params):
     q = (query_params.get("q") or "").strip()
     dia_ban = (query_params.get("dia_ban") or "").strip()

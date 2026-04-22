@@ -116,36 +116,34 @@ def is_eligible_for_badge(dang_vien, review_date, badge_year, awarded_badges):
     if already_awarded:
         return False
 
-    party_age = calculate_party_age_at_date(dang_vien.NgayVaoDang, review_date)
-    # Support overdue awards: members who passed the milestone in prior years
-    # are still eligible if they have not received that specific badge yet.
-    if party_age < badge_year:
-        return False
-
-    eligible_date = add_years(dang_vien.NgayVaoDang, badge_year)
-    return eligible_date <= review_date
+    # Theo quy định mới: Có thể trao sớm nếu trong năm đó Đảng viên đủ tuổi Đảng
+    # Tức là chỉ cần năm (review_date.year - NgayVaoDang.year) >= badge_year
+    year_diff = review_date.year - dang_vien.NgayVaoDang.year
+    return year_diff >= badge_year
 
 
 def get_eligible_members(dang_viens, review_date, badge_year, awarded_badges):
     years_to_check = [badge_year] if badge_year else list(BADGE_MILESTONES)
     years_to_check.sort()
 
-    today = datetime.date.today()
-    # Nếu ngày đợt xét chưa đến (review_date > today) → đủ điều kiện nhưng chưa đến đợt trao
-    chua_den_dot = review_date > today
-
     eligible = []
 
     for dang_vien in dang_viens:
         for years in years_to_check:
             if is_eligible_for_badge(dang_vien, review_date, years, awarded_badges):
+                eligible_date = add_years(dang_vien.NgayVaoDang, years)
+                
+                # Đảng viên được coi là "trao sớm" nếu ngày đủ điều kiện thực tế 
+                # nằm sau ngày đợt trao (review_date) nhưng vẫn trong cùng năm.
+                is_early = eligible_date > review_date
+
                 eligible.append(
                     {
                         "dang_vien": dang_vien,
                         "eligible_for_years": years,
                         "party_age": calculate_party_age_at_date(dang_vien.NgayVaoDang, review_date),
-                        "eligible_date": add_years(dang_vien.NgayVaoDang, years),
-                        "chua_den_dot": chua_den_dot,
+                        "eligible_date": eligible_date,
+                        "is_early": is_early,
                     }
                 )
                 break

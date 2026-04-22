@@ -507,11 +507,6 @@ class LoginForm(forms.Form):
             "autocomplete": "current-password"
         })
     )
-    remember_me = forms.BooleanField(
-        label="Ghi nhớ đăng nhập",
-        required=False,
-        widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
-    )
 
 
 class SignUpForm(forms.Form):

@@ -1933,14 +1933,13 @@ def login_view(request):
         if form.is_valid():
             identifier = form.cleaned_data.get("identifier")
             password = form.cleaned_data.get("password")
-            remember_me = form.cleaned_data.get("remember_me")
             user = authenticate(request, username=identifier, password=password)
             if user is not None:
                 login(request, user)
-                if remember_me:
-                    request.session.set_expiry(30 * 24 * 60 * 60)
-                else:
-                    request.session.set_expiry(0)
+                # Kiểm tra nếu người dùng cần đổi mật khẩu
+                if hasattr(user, 'profile') and user.profile.must_change_password:
+                    messages.info(request, "Đây là lần đăng nhập đầu tiên, vui lòng đổi mật khẩu để tiếp tục.")
+                    return redirect("change_password")
                 return redirect("home")
             else:
                 messages.error(request, "Tên đăng nhập hoặc mật khẩu không chính xác.")
@@ -1953,6 +1952,31 @@ def login_view(request):
 def signup_view(request):
     """Đã tắt chức năng đăng ký tài khoản"""
     return redirect("login")
+
+
+@login_required(login_url='login')
+def change_password_view(request):
+    from django.contrib.auth import update_session_auth_hash
+    from django.contrib.auth.forms import PasswordChangeForm
+    
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Cập nhật session để không bị logout sau khi đổi mật khẩu
+            update_session_auth_hash(request, user)
+            
+            # Cập nhật trạng thái đã đổi mật khẩu
+            if hasattr(user, 'profile'):
+                user.profile.must_change_password = False
+                user.profile.save()
+                
+            messages.success(request, "Đổi mật khẩu thành công.")
+            return redirect("home")
+    else:
+        form = PasswordChangeForm(request.user)
+    
+    return render(request, "qldv/change_password.html", {"form": form})
 
 
 def logout_view(request):

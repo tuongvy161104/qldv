@@ -1,4 +1,4 @@
-﻿{% extends "qldv/base.html" %}
+{% extends "qldv/base.html" %}
 
 {% block title %}Tổng quan | Quản lý Đảng viên{% endblock %}
 {% block page_header %}Trang tổng quan{% endblock %}
@@ -209,11 +209,10 @@
 	<section class="hero" style="background: linear-gradient(135deg, var(--primary) 0%, #a00015 100%); color: white; border-color: transparent;">
 		<h2 style="color: white;">Chào mừng đến Hệ thống quản lý Đảng viên</h2>
 		<p style="color: rgba(255, 255, 255, 0.9);">
-			Để truy cập hệ thống, vui lòng đăng nhập hoặc đăng ký tài khoản mới.
+			Vui lòng đăng nhập để truy cập hệ thống.
 		</p>
 		<div class="hero-actions">
 			<a href="{% url 'login' %}" class="btn btn-primary" style="background: white; color: var(--primary); border-color: white;">Đăng nhập</a>
-			<a href="{% url 'signup' %}" class="btn" style="background: rgba(255, 255, 255, 0.15); color: white; border-color: rgba(255, 255, 255, 0.3);">Đăng ký tài khoản</a>
 		</div>
 	</section>
 	{% else %}

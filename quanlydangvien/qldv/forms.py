@@ -490,13 +490,13 @@ class HuyHieuEditForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
-    """Form đăng nhập bằng email"""
-    email = forms.EmailField(
-        label="Email",
-        widget=forms.EmailInput(attrs={
+    """Form đăng nhập"""
+    identifier = forms.CharField(
+        label="Tên đăng nhập",
+        widget=forms.TextInput(attrs={
             "class": "form-control",
-            "placeholder": "Nhập email của bạn",
-            "autocomplete": "email"
+            "placeholder": "Nhập tên đăng nhập hoặc email",
+            "autocomplete": "username"
         })
     )
     password = forms.CharField(

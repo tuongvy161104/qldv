@@ -1931,10 +1931,10 @@ def login_view(request):
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
-            email = form.cleaned_data.get("email")
+            identifier = form.cleaned_data.get("identifier")
             password = form.cleaned_data.get("password")
             remember_me = form.cleaned_data.get("remember_me")
-            user = authenticate(request, username=email, password=password)
+            user = authenticate(request, username=identifier, password=password)
             if user is not None:
                 login(request, user)
                 if remember_me:
@@ -1943,7 +1943,7 @@ def login_view(request):
                     request.session.set_expiry(0)
                 return redirect("home")
             else:
-                messages.error(request, "Email hoặc mật khẩu không chính xác.")
+                messages.error(request, "Tên đăng nhập hoặc mật khẩu không chính xác.")
     else:
         form = LoginForm()
 
@@ -1951,38 +1951,8 @@ def login_view(request):
 
 
 def signup_view(request):
-    from django.contrib.auth.models import User
-    from .forms import SignUpForm
-
-    if request.user.is_authenticated:
-        return redirect("home")
-
-    if request.method == "POST":
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            full_name = form.cleaned_data.get("full_name")
-            email = form.cleaned_data.get("email")
-            password = form.cleaned_data.get("password")
-            name_parts = full_name.strip().split()
-            if len(name_parts) >= 2:
-                first_name = name_parts[-1]
-                last_name = " ".join(name_parts[:-1])
-            else:
-                first_name = full_name.strip()
-                last_name = ""
-            user = User.objects.create_user(username=email, email=email, password=password, first_name=first_name, last_name=last_name)
-            from django.contrib.auth import authenticate, login
-            user = authenticate(request, username=email, password=password)
-            login(request, user)
-            return redirect("home")
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-    else:
-        form = SignUpForm()
-
-    return render(request, "qldv/signup.html", {"form": form})
+    """Đã tắt chức năng đăng ký tài khoản"""
+    return redirect("login")
 
 
 def logout_view(request):

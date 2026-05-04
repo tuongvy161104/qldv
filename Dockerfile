@@ -28,5 +28,5 @@ WORKDIR /app/quanlydangvien
 # Thu thập static files
 RUN python manage.py collectstatic --noinput
 
-# Chạy ứng dụng bằng Gunicorn
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 quanlydangvien.wsgi:application
+# Chạy migrations và khởi động ứng dụng bằng Gunicorn
+CMD sh -c "python manage.py migrate && exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 quanlydangvien.wsgi:application"

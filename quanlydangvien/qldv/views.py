@@ -466,35 +466,57 @@ def home(request):
         "huy_hieu": HuyHieuDang.objects.count(),
     }
 
-    quick_actions = [
+    # Báo cáo thống kê (Top 3 cards)
+    dashboard_cards = [
         {
-            "title": "Quản lý Chi bộ",
-            "description": "Cập nhật thông tin Chi bộ theo từng khu vực.",
+            "title": "Thông Tin Chi Bộ",
+            "description": "Xem phân bổ đơn vị, trạng thái hoạt động và địa bàn dân cư.",
             "path": "/chibo/",
-            "badge": "Đơn vị",
+            "icon": "home",
         },
         {
-            "title": "Danh sách Đảng viên",
-            "description": "Tra cứu hồ sơ, quá trình công tác và trạng thái sinh hoạt.",
+            "title": "Thông tin Đảng viên",
+            "description": "Quản lý hồ sơ Đảng viên, thông tin sinh hoạt và biến động nhân sự.",
             "path": "/dangvien/",
-            "badge": "Nhân sự",
+            "icon": "users",
         },
         {
-            "title": "Quản lý Huy hiệu Đảng",
-            "description": "Tổng hợp đề nghị, phê duyệt và trao tặng huy hiệu.",
+            "title": "Trao tặng Huy hiệu",
+            "description": "Thống kê hồ sơ xét tặng, phê duyệt và danh sách nhận huy hiệu Đảng.",
             "path": "/huyhieu/",
-            "badge": "Khen thưởng",
+            "icon": "award",
         },
     ]
 
-    recent_updates = ChiBo.objects.select_related("DangBoID").annotate(
-        dang_vien=Count("dangvien", distinct=True)
-    ).order_by("-ChiBoID")[:8]
+    # Truy cập nhanh dữ liệu (Bottom cards)
+    quick_access_data = [
+        {
+            "title": "Chi bộ",
+            "count_label": f"{stats['chi_bo']} đơn vị",
+            "add_path": "/chibo/them-moi/",
+            "view_path": "/chibo/",
+            "icon": "home",
+        },
+        {
+            "title": "Đảng viên",
+            "count_label": f"{stats['dang_vien']} hồ sơ",
+            "add_path": "/dangvien/them-moi/",
+            "view_path": "/dangvien/",
+            "icon": "users",
+        },
+        {
+            "title": "Huy hiệu Đảng",
+            "count_label": f"{stats['huy_hieu']} bản ghi",
+            "add_path": "/huyhieu/them-moi/",
+            "view_path": "/huyhieu/",
+            "icon": "award",
+        },
+    ]
 
     context = {
         "stats": stats,
-        "quick_actions": quick_actions,
-        "recent_updates": recent_updates,
+        "dashboard_cards": dashboard_cards,
+        "quick_access_data": quick_access_data,
     }
     return render(request, "qldv/home.html", context)
 
@@ -724,6 +746,28 @@ def chibo(request):
     inactive_percent = round((inactive_chibo * 100 / total_chibo), 1) if total_chibo else 0
     residential_percent = round((residential_count * 100 / total_chibo), 1) if total_chibo else 0
 
+    # Lightweight per-chibo records for client-side cross-filtering
+    chibo_records = []
+    for item in filtered_rows:
+        active = _is_active(item["TrangThai"])
+        loai = _classify_chi_bo_category(item["TenChiBo"])
+        chibo_records.append({
+            "db": item["DiaBan"] or "",
+            "tt": 1 if active else 0,
+            "loai": loai,
+            "ten": item["TenChiBo"] or "",
+        })
+
+    dia_ban_colors_list = [
+        {"name": db, "color": dia_ban_colors.get(db, "#64748b")}
+        for db in dia_ban_order
+    ]
+    category_meta = [
+        {"key": "residential", "label": "Khu dân cư", "icon": "🏠", "color": "#be123c"},
+        {"key": "agency", "label": "Cơ quan / Đơn vị", "icon": "🏛️", "color": "#9f1239"},
+        {"key": "school", "label": "Trường học", "icon": "🏫", "color": "#b45309"},
+    ]
+
     # ====================== CONTEXT ======================
     context = {
         "total_chibo": total_chibo,
@@ -744,6 +788,11 @@ def chibo(request):
         "selected_loai": selected_loai,
         "dia_ban_options": sorted({row["DiaBan"] for row in source_rows if row["DiaBan"]}),
         "trang_thai_options": sorted({row["TrangThai"] for row in source_rows if row["TrangThai"]}),
+
+        # Cross-filter data
+        "chibo_records": chibo_records,
+        "dia_ban_colors_json": dia_ban_colors_list,
+        "category_meta_json": category_meta,
     }
 
     return render(request, "qldv/chibo.html", context)
@@ -1536,6 +1585,12 @@ def _get_dang_vien_structure_context(reference_date=None):
         height_px = max(2, int(ratio * 3.4)) if value > 0 else 1
         yearly_admission_bars.append({"year": year, "value": value, "height_px": height_px, "color": _year_color(year), "is_special": special_year is not None and year == special_year, "show_label": (year % 5 == 0)})
 
+    # Lightweight per-member records for client-side cross-filtering
+    member_records = []
+    for member in members:
+        if member.NgayVaoDang:
+            member_records.append({"y": member.NgayVaoDang.year, "m": member.NgayVaoDang.month})
+
     return {
         "total": total,
         "period_cards": period_cards,
@@ -1547,6 +1602,11 @@ def _get_dang_vien_structure_context(reference_date=None):
         "yearly_special_year": special_year,
         "yearly_special_count": special_count,
         "monthly_admission_top": monthly_admission_top,
+        "member_records": member_records,
+        "period_ranges_json": [
+            {"label": label, "start": start_yr, "end": end_yr, "color": period_colors[idx % len(period_colors)]}
+            for idx, (label, start_yr, end_yr) in enumerate(period_ranges)
+        ],
     }
 
 

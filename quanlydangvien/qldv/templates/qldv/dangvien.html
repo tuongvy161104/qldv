@@ -75,12 +75,6 @@
 
 	.charts {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.9rem;
-	}
-
-	.charts-three {
-		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 0.9rem;
 	}
@@ -402,10 +396,6 @@
 			grid-template-columns: 1fr;
 		}
 
-		.charts-three {
-			grid-template-columns: 1fr;
-		}
-
 		.age-sections {
 			grid-template-columns: 1fr;
 		}
@@ -477,32 +467,6 @@
 			</div>
 			<div class="chart-donut-wrap">
 				<div class="chart-donut" data-donut data-tip-title="Diện Đảng viên" data-tip-value="Tổng {{ total_display }} Đảng viên" data-tip-color="#7f1d1d" style="background: {{ membership_chart_style }};"></div>
-			</div>
-		</article>
-	</section>
-
-	<section class="charts-three">
-		<article class="chart-card viz-card" data-viz-card data-chart-id="nghe" tabindex="0" role="button" aria-label="Biểu đồ nghề nghiệp">
-			<h3>Nghề nghiệp</h3>
-			<div class="chart-legend" data-legend>
-				{% for item in nghe_nghiep_segments %}
-				<div class="legend-item" data-filter-key="{{ item.key }}" data-tip-title="Nghề nghiệp" data-tip-value="{{ item.label }} {{ item.percent_text }}% ({{ item.count }} người)" data-tip-color="{{ item.color }}"><span class="legend-dot" style="background:{{ item.color }};"></span>{{ item.label }} {{ item.percent_text }}%</div>
-				{% endfor %}
-			</div>
-			<div class="chart-donut-wrap">
-				<div class="chart-donut" data-donut data-tip-title="Nghề nghiệp" data-tip-value="Tổng {{ total_display }} Đảng viên" data-tip-color="#9f1239" style="background: {{ nghe_nghiep_chart_style }};"></div>
-			</div>
-		</article>
-
-		<article class="chart-card viz-card" data-viz-card data-chart-id="lyluan" tabindex="0" role="button" aria-label="Biểu đồ lý luận chính trị">
-			<h3>Lý luận chính trị</h3>
-			<div class="chart-legend" data-legend>
-				{% for item in ly_luan_segments %}
-				<div class="legend-item" data-filter-key="{{ item.key }}" data-tip-title="Lý luận chính trị" data-tip-value="{{ item.label }} {{ item.percent_text }}% ({{ item.count }} người)" data-tip-color="{{ item.color }}"><span class="legend-dot" style="background:{{ item.color }};"></span>{{ item.label }} {{ item.percent_text }}%</div>
-				{% endfor %}
-			</div>
-			<div class="chart-donut-wrap">
-				<div class="chart-donut" data-donut data-tip-title="Lý luận chính trị" data-tip-value="Tổng {{ total_display }} Đảng viên" data-tip-color="#7f1d1d" style="background: {{ ly_luan_chart_style }};"></div>
 			</div>
 		</article>
 
@@ -592,16 +556,12 @@
 		var segmentFieldByChart = {
 			gender: "gender_segments",
 			membership: "membership_segments",
-			nghe: "nghe_nghiep_segments",
-			lyluan: "ly_luan_segments",
 			tinhtrang: "tinh_trang_segments"
 		};
 
 		var styleFieldByChart = {
 			gender: "gender_chart_style",
 			membership: "membership_chart_style",
-			nghe: "nghe_nghiep_chart_style",
-			lyluan: "ly_luan_chart_style",
 			tinhtrang: "tinh_trang_chart_style"
 		};
 

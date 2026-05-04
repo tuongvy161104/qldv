@@ -31,10 +31,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-^^-2xsq!*hm19!g2s9++1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'qldv-319520474101.asia-southeast1.run.app').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'qldv-319520474101.asia-southeast1.run.app,localhost,127.0.0.1').split(',')
 
 # CSRF Trusted Origins for Cloud Run
-CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://qldv-319520474101.asia-southeast1.run.app,http://localhost,http://127.0.0.1').split(',')
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://qldv-319520474101.asia-southeast1.run.app,http://localhost,http://127.0.0.1,http://localhost:8000,http://127.0.0.1:8000').split(',')
 
 
 # Application definition

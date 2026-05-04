@@ -1,302 +1,317 @@
 {% extends "qldv/base.html" %}
 
 {% block title %}Tổng quan | Quản lý Đảng viên{% endblock %}
-{% block page_header %}Trang tổng quan{% endblock %}
+{% block page_header %}Báo cáo thống kê (Dashboard){% endblock %}
 
 {% block extra_css %}
 <style>
-	.dashboard {
-		display: grid;
-		gap: 1rem;
+	:root {
+		--bg-dashboard: #f8fafc;
+		--card-bg: #ffffff;
+		--text-main: #0f172a;
+		--text-muted: #64748b;
+		--primary-red: #c4001a;
+		--primary-red-light: #fef2f2;
+		--primary-red-border: rgba(196, 0, 26, 0.1);
+		--green-primary: #059669;
+		--green-light: #ecfdf5;
+		--radius-lg: 1rem;
+		--radius-md: 0.625rem;
+		--shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
 	}
 
-	.hero {
-		position: relative;
-		overflow: hidden;
-		padding: 1.25rem;
-		border-radius: var(--radius);
-		border: 1px solid var(--border);
-		background: #eef2f4;
+	body {
+		background-color: var(--bg-dashboard);
 	}
 
-	.hero::after {
-		content: none;
-	}
-
-	.hero h2 {
-		font-size: 1.45rem;
-		margin-bottom: 0.4rem;
-	}
-
-	.hero p {
-		margin: 0;
-		max-width: 62ch;
-		color: var(--muted-foreground);
-	}
-
-	.hero-actions {
+	.dashboard-wrapper {
+		max-width: 1400px;
+		margin: 0 auto;
+		padding: 1.5rem;
 		display: flex;
-		gap: 0.65rem;
-		margin-top: 1rem;
-		flex-wrap: wrap;
+		flex-direction: column;
+		gap: 2.5rem;
 	}
 
-	.btn-primary {
-		background: var(--primary);
-		color: var(--primary-foreground);
-		border-color: color-mix(in oklab, var(--primary) 84%, black 16%);
-	}
-
-	.btn-primary:hover {
-		background: color-mix(in oklab, var(--primary) 86%, white 14%);
-		color: var(--primary-foreground);
-	}
-
-	.stat-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 0.75rem;
-	}
-
-	.stat-card {
-		padding: 0.95rem;
-		border-radius: calc(var(--radius) - 1px);
-		border: 1px solid var(--border);
-		background: color-mix(in oklab, var(--card) 96%, white 4%);
-	}
-
-	.stat-label {
-		margin: 0 0 0.2rem;
-		font-size: 0.82rem;
-		color: var(--muted-foreground);
-	}
-
-	.stat-value {
-		margin: 0;
-		font-size: 1.7rem;
+	.section-title {
+		font-size: 1.25rem;
 		font-weight: 700;
+		color: var(--text-main);
+		margin-bottom: 1.5rem;
 	}
 
-	.section-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.8rem;
-		margin-bottom: 0.6rem;
-	}
-
-	.section-header p {
-		margin: 0;
-		font-size: 0.9rem;
-		color: var(--muted-foreground);
-	}
-
-	.action-grid {
+	/* Top Grid: Report Cards */
+	.report-grid {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.75rem;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1.5rem;
 	}
 
-	.action-card {
-		padding: 0.95rem;
-		border: 1px solid var(--border);
-		border-radius: calc(var(--radius) - 1px);
-		background: color-mix(in oklab, var(--card) 95%, #ffffff 5%);
+	.report-card {
+		background: var(--card-bg);
+		border-radius: var(--radius-lg);
+		padding: 2rem;
+		box-shadow: var(--shadow-sm);
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		border: 1px solid rgba(0,0,0,0.02);
 	}
 
-	.action-card:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 10px 24px color-mix(in oklab, var(--foreground) 8%, transparent);
+	.report-card:hover {
+		transform: translateY(-4px);
+		box-shadow: 0 12px 24px -8px rgba(0,0,0,0.1);
 	}
 
-	.action-head {
+	.report-icon-box {
+		width: 3.5rem;
+		height: 3.5rem;
+		background: var(--primary-red-light);
+		color: var(--primary-red);
+		border-radius: var(--radius-md);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 0.8rem;
-		margin-bottom: 0.45rem;
+		justify-content: center;
 	}
 
-	.badge {
-		font-size: 0.75rem;
-		padding: 0.18rem 0.45rem;
-		border-radius: 999px;
-		border: 1px solid var(--border);
-		background: color-mix(in oklab, var(--accent) 88%, white 12%);
+	.report-icon-box svg {
+		width: 1.75rem;
+		height: 1.75rem;
 	}
 
-	.action-card p {
-		margin: 0;
-		font-size: 0.9rem;
-		color: var(--muted-foreground);
+	.report-content h3 {
+		font-size: 1.3rem;
+		font-weight: 700;
+		color: var(--text-main);
+		margin-bottom: 0.75rem;
 	}
 
-	.action-link {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.28rem;
-		margin-top: 0.65rem;
+	.report-content p {
 		font-size: 0.95rem;
-		font-weight: 500;
-		color: #d10014;
-		letter-spacing: 0.01em;
-		transition: transform 0.18s ease, color 0.18s ease;
+		color: var(--text-muted);
+		line-height: 1.6;
+		margin: 0;
+		min-height: 3.2rem;
 	}
 
-	.action-link:hover {
-		color: #b10011;
-		transform: translateX(2px);
+	.report-footer {
+		margin-top: auto;
+		padding-top: 1rem;
 	}
 
-	.table-wrap {
-		overflow-x: auto;
-		border: 1px solid var(--border);
-		border-radius: calc(var(--radius) - 1px);
-	}
-
-	table {
+	.btn-report-link {
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		width: 100%;
-		border-collapse: collapse;
-		min-width: 650px;
-	}
-
-	thead {
-		background: color-mix(in oklab, var(--muted) 65%, transparent);
-	}
-
-	th,
-	td {
 		padding: 0.75rem;
-		text-align: left;
-		border-bottom: 1px solid var(--border);
-		font-size: 0.93rem;
+		background: var(--primary-red-light);
+		color: var(--primary-red);
+		font-weight: 600;
+		font-size: 0.9rem;
+		border-radius: var(--radius-md);
+		text-decoration: none;
+		transition: background 0.2s ease;
 	}
 
-	tbody tr:last-child td {
-		border-bottom: none;
+	.btn-report-link:hover {
+		background: color-mix(in srgb, var(--primary-red-light) 90%, var(--primary-red) 10%);
 	}
 
-	@media (max-width: 1100px) {
-		.stat-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+	/* Bottom Grid: Quick Access Data */
+	.quick-access-title {
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: var(--text-main);
+		margin-bottom: 1.5rem;
+	}
+
+	.quick-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1.25rem;
+	}
+
+	.quick-card {
+		background: var(--card-bg);
+		border-radius: var(--radius-lg);
+		padding: 1rem 1.25rem;
+		box-shadow: var(--shadow-sm);
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		border: 1px solid rgba(0,0,0,0.01);
+	}
+
+	.quick-icon-box {
+		width: 2.75rem;
+		height: 2.75rem;
+		background: #f8fafc;
+		border: 1px solid #e2e8f0;
+		border-radius: 0.75rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-muted);
+		flex-shrink: 0;
+	}
+
+	.quick-icon-box svg {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+
+	.quick-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.quick-info h4 {
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--text-main);
+		margin: 0;
+	}
+
+	.quick-info span {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
+
+	.quick-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.btn-quick {
+		font-size: 0.75rem;
+		font-weight: 700;
+		padding: 0.4rem 0.75rem;
+		border-radius: 0.5rem;
+		text-decoration: none;
+		text-transform: uppercase;
+		letter-spacing: 0.02em;
+	}
+
+	.btn-add {
+		background: var(--green-light);
+		color: var(--green-primary);
+	}
+
+	.btn-view {
+		background: var(--primary-red-light);
+		color: var(--primary-red);
+	}
+
+	.btn-add:hover {
+		background: color-mix(in srgb, var(--green-light) 85%, var(--green-primary) 15%);
+	}
+
+	.btn-view:hover {
+		background: color-mix(in srgb, var(--primary-red-light) 85%, var(--primary-red) 15%);
+	}
+
+	/* Responsive */
+	@media (max-width: 1200px) {
+		.report-grid, .quick-grid {
+			grid-template-columns: repeat(2, 1fr);
 		}
+	}
 
-		.action-grid {
+	@media (max-width: 768px) {
+		.report-grid, .quick-grid {
 			grid-template-columns: 1fr;
 		}
-	}
-
-	@media (max-width: 640px) {
-		.hero {
+		
+		.dashboard-wrapper {
 			padding: 1rem;
 		}
+	}
 
-		.stat-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.hero h2 {
-			font-size: 1.2rem;
-		}
+	/* Hero for Guest */
+	.guest-hero {
+		background: white;
+		border-radius: var(--radius-lg);
+		padding: 4rem 2rem;
+		text-align: center;
+		box-shadow: var(--shadow-sm);
 	}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard">
+<div class="dashboard-wrapper">
 	{% if not user.is_authenticated %}
-	<section class="hero" style="background: linear-gradient(135deg, var(--primary) 0%, #a00015 100%); color: white; border-color: transparent;">
-		<h2 style="color: white;">Chào mừng đến Hệ thống quản lý Đảng viên</h2>
-		<p style="color: rgba(255, 255, 255, 0.9);">
-			Vui lòng đăng nhập để truy cập hệ thống.
-		</p>
-		<div class="hero-actions">
-			<a href="{% url 'login' %}" class="btn btn-primary" style="background: white; color: var(--primary); border-color: white;">Đăng nhập</a>
-		</div>
+	<section class="guest-hero">
+		<h1 style="font-size: 2.25rem; font-weight: 800; color: var(--text-main); margin-bottom: 1rem;">Hệ thống Quản lý Đảng viên</h1>
+		<p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2.5rem;">Vui lòng đăng nhập để truy cập các công cụ quản lý và báo cáo.</p>
+		<a href="{% url 'login' %}" class="btn-report-link" style="display: inline-flex; width: auto; padding: 0.75rem 2.5rem; border-radius: 999px; background: var(--primary-red); color: white;">Đăng nhập</a>
 	</section>
 	{% else %}
-	<section class="hero">
-		<h2>Hệ thống quản lý Đảng viên thành phố</h2>
-		<p>
-			Theo dõi tổ chức Đảng theo cấp, quản lý danh sách Đảng viên và cập nhật tiến độ xét tặng Huy hiệu Đảng trên một màn hình thống nhất.
-		</p>
-		<div class="hero-actions">
-			<a href="/dangvien/" class="btn btn-primary">Cập nhật Đảng viên</a>
-			<a href="/chibo/" class="btn">Quản lý Chi bộ</a>
-		</div>
-	</section>
 
-	<section class="stat-grid" aria-label="Thống kê tổng quan">
-		<article class="stat-card">
-			<p class="stat-label">Tổng Chi bộ</p>
-			<p class="stat-value">{{ stats.chi_bo }}</p>
-		</article>
-		<article class="stat-card">
-			<p class="stat-label">Tổng Đảng viên</p>
-			<p class="stat-value">{{ stats.dang_vien }}</p>
-		</article>
-		<article class="stat-card">
-			<p class="stat-label">Hồ sơ Huy hiệu</p>
-			<p class="stat-value">{{ stats.huy_hieu }}</p>
-		</article>
-	</section>
-
+	<!-- Báo cáo thống kê Section -->
 	<section>
-		<div class="section-header">
-			<h3>Chức năng nhanh</h3>
-			<p>Truy cập nhanh các phân hệ trong hệ thống</p>
-		</div>
-		<div class="action-grid">
-			{% for item in quick_actions %}
-			<article class="action-card">
-				<div class="action-head">
-					<h4>{{ item.title }}</h4>
+		<h2 class="section-title">Báo cáo thống kê (Dashboard)</h2>
+		<div class="report-grid">
+			{% for card in dashboard_cards %}
+			<div class="report-card">
+				<div class="report-icon-box">
+					{% if card.icon == 'home' %}
+					<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+					{% elif card.icon == 'users' %}
+					<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+					{% elif card.icon == 'award' %}
+					<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z"/></svg>
+					{% endif %}
 				</div>
-				<p>{{ item.description }}</p>
-				<a href="{{ item.path }}" class="action-link">Xem chi tiết <span aria-hidden="true">&rarr;</span></a>
-			</article>
+				<div class="report-content">
+					<h3>{{ card.title }}</h3>
+					<p>{{ card.description }}</p>
+				</div>
+				<div class="report-footer">
+					<a href="{{ card.path }}" class="btn-report-link">Truy cập trang</a>
+				</div>
+			</div>
 			{% endfor %}
 		</div>
 	</section>
 
+	<!-- Truy cập nhanh dữ liệu Section -->
 	<section>
-		<div class="section-header">
-			<h3>Cập nhật gần đây</h3>
-			<p>Dữ liệu cập nhật trực tiếp từ cơ sở dữ liệu</p>
-		</div>
-		<div class="table-wrap">
-			<table>
-				<thead>
-					<tr>
-						<th>Tên Chi bộ</th>
-						<th>Đảng bộ</th>
-						<th>Địa bàn</th>
-						<th>Số Đảng viên</th>
-					</tr>
-				</thead>
-				<tbody>
-					{% for row in recent_updates %}
-					<tr>
-						<td>{{ row.TenChiBo }}</td>
-						<td>{{ row.DangBoID.TenDangBo }}</td>
-						<td>{{ row.DiaBan }}</td>
-						<td>{{ row.dang_vien }}</td>
-					</tr>
-					{% empty %}
-					<tr>
-						<td colspan="4">Chưa có dữ liệu Chi bộ.</td>
-					</tr>
-					{% endfor %}
-				</tbody>
-			</table>
+		<h2 class="quick-access-title">Truy cập nhanh dữ liệu</h2>
+		<div class="quick-grid">
+			{% for item in quick_access_data %}
+			<div class="quick-card">
+				<div class="quick-icon-box">
+					{% if item.icon == 'home' %}
+					<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+					{% elif item.icon == 'users' %}
+					<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+					{% elif item.icon == 'award' %}
+					<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+					{% elif item.icon == 'chart' %}
+					<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+					{% elif item.icon == 'database' %}
+					<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+					{% endif %}
+				</div>
+				<div class="quick-info">
+					<h4>{{ item.title }}</h4>
+					<span>{{ item.count_label }}</span>
+				</div>
+				<div class="quick-actions">
+					{% if item.add_path %}
+					<a href="{{ item.add_path }}" class="btn-quick btn-add">Thêm</a>
+					{% endif %}
+					<a href="{{ item.view_path }}" class="btn-quick btn-view">Xem</a>
+				</div>
+			</div>
+			{% endfor %}
 		</div>
 	</section>
 	{% endif %}
 </div>
 {% endblock %}
-
-
-
-
-

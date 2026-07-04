@@ -1,9 +1,16 @@
-asgiref==3.11.1
-Django==6.0.4
-psycopg2-binary==2.9.11
-sqlparse==0.5.5
+# Web framework
+Django==5.1.8
+
+# Production server and static files
 gunicorn==21.2.0
-whitenoise==6.6.0
-dj-database-url==2.1.0
-python-dotenv==1.0.1
+whitenoise==6.12.0
+
+# Database support
+psycopg2-binary==2.9.11
+dj-database-url==3.1.2
+
+# Environment configuration
+python-dotenv==1.1.0
+
+# Excel/CSV import support
 openpyxl==3.1.5
